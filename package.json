@@ -1,0 +1,19 @@
+{
+  "name": "chat-app",
+  "version": "1.0.0",
+  "description": "A Chat Application",
+  "author": "D Mansuclal",
+  "private": true,
+  "license": "ISC",
+  "dependencies": {
+    "chat-backend": "file:chat-backend",
+    "chat-frontend": "file:chat-frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "scripts": {
+    "start": "concurrently \"npm run dev --prefix chat-backend\" \"npm run start --prefix chat-frontend\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

@@ -1,6 +1,11 @@
 import { DataSource } from 'typeorm'
+import logger from './logger.config';
 import 'dotenv/config'
 
+/**
+ * The database connection configuration
+ * @see https://typeorm.io/
+ */
 const dataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST,
@@ -14,12 +19,10 @@ const dataSource = new DataSource({
 });
 
 dataSource.initialize().then(() => {
-    console.log('Database connection established');
+    logger.info('Database connection established.', { data: { database: process.env.DB_NAME } });
 }
 ).catch(err => {
-    console.log('Database connection failed');
-    console.log(err);
-    process.exit(1);
+    logger.error('Database connection failed.', { data: { database: process.env.DB_NAME, error: err } });
 });
 
 export default dataSource;

@@ -17,7 +17,8 @@ import winston, { Logger, format, addColors } from "winston";
 const fileCustomFormat = format.printf((info: winston.Logform.TransformableInfo) => {
     const orderedInfo: winston.Logform.TransformableInfo = { 
         timestamp: info.timestamp, 
-        level: info.level, 
+        level: info.level.toUpperCase(),
+        method: info.method, 
         message: info.message,
         [Symbol.for('splat')]: info[Symbol.for('splat')], 
         [Symbol.for('level')]: info[Symbol.for('level')]
@@ -36,17 +37,17 @@ const fileCustomFormat = format.printf((info: winston.Logform.TransformableInfo)
  * @example
  * `2021-01-01 00:00:00:000 [INFO] (chat-backend) Info Message. | data: [messageData: This is a message data.]`
  */
-const consoleCustomFormat = format.printf(({ level, message, timestamp, data }) => {
+const consoleCustomFormat = format.printf(({ level, message, method, timestamp, data }) => {
     let extraString = '';
     for (const key in data) {
         if (data.hasOwnProperty(key)) {
             extraString += `${key}: ${data[key]}`;
             if (key !== Object.keys(data)[Object.keys(data).length - 1]) {
-                extraString += ',';
+                extraString += ', ';
             }
         }
     }
-    return `${timestamp} [${level.toUpperCase()}] (chat-backend) ${message} | ${extraString ? `data: [${extraString}]` : ''}`;
+    return `${timestamp} [${level.toUpperCase()}] (${method}) ${message} ${extraString ? `| data: [${extraString}]` : ''}`;
 });
 
 addColors({

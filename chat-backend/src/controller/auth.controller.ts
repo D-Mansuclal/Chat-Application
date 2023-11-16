@@ -22,33 +22,51 @@ export async function register(req: Request, res: Response) {
 
         logger.info("User creation request received.", { method: MODULE_NAME, data: { username, email, ipAddress } });
 
-        let errors: string[] = [];
-
         // Username Validation
-        if (username.length < 3) errors.push("Username must be at least 3 characters long");
+        let usernameErrors: string[] = [];
+
+        if (username.length < 3) usernameErrors.push("Username must be at least 3 characters long");
+        if (username.length > 15) usernameErrors.push("Username must be at most 15 characters long");
         const checkUsername = await dataSource.getRepository(User).findOne({ where: { username: username } });
-        if (checkUsername) errors.push("Username is already taken. Please choose another one");
+        if (checkUsername) { 
+            return res.status(409).json({ 
+                error: "Username is already taken. Please choose another one",
+                username: username
+            });
+        }
 
         // Email Validation
-        if (!/^\S+@\S+\.\S+$/.test(email)) errors.push("Email is not valid");
-        if (email) {
-            const checkEmail = await dataSource.getRepository(User).findOne({ where: { email: email } });
-            if (checkEmail) errors.push("Email is already taken. Please choose another one");
+        let emailErrors: string[] = [];
+
+        if (!/^\S+@\S+\.\S+$/.test(email)) emailErrors.push("Email is not valid");
+        const checkEmail = await dataSource.getRepository(User).findOne({ where: { email: email } });
+        if (checkEmail) {
+            return res.status(409).json({ 
+                error: "Email is already taken. Please choose another one",
+                email: email
+            });
         }
 
         // Password Validation
-        if (password.length < 8) errors.push("Password must be at least 8 characters long");
-        if (!/[A-Z]/.test(password)) errors.push("Password must contain at least one uppercase letter");
-        if (!/[a-z]/.test(password)) errors.push("Password must contain at least one lowercase letter");
-        if (!/[0-9]/.test(password)) errors.push("Password must contain at least one number");
+        let passwordErrors: string[] = [];
+
+        if (password.length < 8) passwordErrors.push("Password must be at least 8 characters long");
+        if (!/[A-Z]/.test(password)) passwordErrors.push("Password must contain at least one uppercase letter");
+        if (!/[a-z]/.test(password)) passwordErrors.push("Password must contain at least one lowercase letter");
+        if (!/[0-9]/.test(password)) passwordErrors.push("Password must contain at least one number");
 
         // IP Address Validation
-        if (!/^((?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])[.]){3}(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$/
-            .test(ipAddress)) errors.push("IP Address is not valid");
+        let ipErrors: string[] = [];
 
-        if (errors.length > 0) {
-            logger.warn("User creation request failed.", { method: MODULE_NAME, data: { username, ipAddress, errors } });
-            return res.status(400).json({ error: errors.join(", ") })
+        if (!/^((?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])[.]){3}(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$/
+            .test(ipAddress)) ipErrors.push("IP Address is not valid");
+
+        if (usernameErrors.length > 0 || passwordErrors.length > 0 || emailErrors.length > 0 || ipErrors.length > 0) {
+            logger.warn("User creation request failed.", { method: MODULE_NAME, data: { username, email, ipAddress } });
+            return res.status(400).json({
+                error: "Invalid parameter data provided.",
+                invalid: { username: usernameErrors, password: passwordErrors, email: emailErrors, ipAddress: ipErrors} 
+            })
         }
 
         const user = new User();

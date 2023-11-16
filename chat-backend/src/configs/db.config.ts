@@ -23,12 +23,12 @@ switch (process.env.NODE_ENV) {
         database = process.env.DEV_DB_SCHEMA,
         synchronize = true
         break;
-    case "testing":
+    case "test":
         host = process.env.TEST_DB_HOST,
         port = Number(process.env.TEST_DB_PORT),
         username = process.env.TEST_DB_USERNAME,
         password = process.env.TEST_DB_PASSWORD,
-        database = process.env.TEST_DB_SCHEMA,
+        database = `${process.env.TEST_DB_SCHEMA}_${process.env.JEST_WORKER_ID}`,
         synchronize = true
         break;
     default:
@@ -57,7 +57,7 @@ const dataSource = new DataSource({
     entities: ['src/models/**/*.ts']
 });
 
-if (process.env.NODE_ENV !== "testing") {
+if (process.env.NODE_ENV !== "test") {
     dataSource.initialize().then(() => {
         logger.info('Database connection established.', { method: MODULE_NAME, 
             data: { database: process.env.NODE_ENV === "production" ? process.env.PROD_DB_SCHEMA : process.env.DEV_DB_SCHEMA } });

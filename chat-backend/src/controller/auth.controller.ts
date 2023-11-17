@@ -27,6 +27,10 @@ export async function register(req: Request, res: Response) {
 
         if (username.length < 3) usernameErrors.push("Username must be at least 3 characters long");
         if (username.length > 15) usernameErrors.push("Username must be at most 15 characters long");
+        if (!/^[a-zA-Z0-9_-]*$/.test(username)) {
+            usernameErrors.push("Username must only contain letters, numbers, underscores and dashes");
+        }
+
         const checkUsername = await dataSource.getRepository(User).findOne({ where: { username: username } });
         if (checkUsername) { 
             return res.status(409).json({ 
@@ -73,7 +77,7 @@ export async function register(req: Request, res: Response) {
         user.username = username;
         user.email = email;
         user.password = hashSync(password, 10);
-        user.createdAtIP = ipAddress;
+        user.ipAddress = ipAddress;
 
         await dataSource.getRepository(User).save(user);
 

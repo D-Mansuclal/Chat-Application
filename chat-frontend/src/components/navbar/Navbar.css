@@ -1,0 +1,22 @@
+.navbar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+}
+
+.navbar__left {
+    background-color: var(--bg-elevated);
+    padding: 0.5rem;
+    border-radius: 5%;
+    transition: all 0.2s ease-in-out;
+}
+
+.navbar__left:hover {
+    background-color: var(--bg-elevated-hover);
+    transition: all 0.2s ease-in-out;
+}

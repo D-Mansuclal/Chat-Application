@@ -1,0 +1,27 @@
+.iconBtn {
+    all: unset;
+    cursor: pointer;
+    color: var(--primary);
+    background-color: var(--bg-elevated);
+    font-size: 2rem;
+    padding: 0.5rem;
+    border-radius: 33%;
+    margin-left: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.iconBtn:hover {
+    color: var(--secondary);
+    background-color: var(--bg-elevated-hover);
+    transition: all 0.2s ease-in-out;
+}
+
+.iconBtn .iconBtn__icon {
+    color: var(--primary);
+    transition: all 0.2s ease-in-out;
+}
+
+.iconBtn:hover .iconBtn__icon {
+    color: var(--btn);
+    transition: all 0.2s ease-in-out;
+}

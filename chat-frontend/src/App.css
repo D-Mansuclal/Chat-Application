@@ -1,0 +1,56 @@
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #121212;
+        --bg-elevated-hover: #414141;
+        --bg-elevated: #2a2a2a;
+        --primary: #BFBFBF;
+        --secondary: #6E6E6E;
+        --btn: #d0bcff;
+        --font: 'Roboto', sans-serif;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg: #f5f5f5;
+        --bg-elevated-hover: #e0e0e0;
+        --bg-elevated: #ffffff;
+        --primary: #15131d;
+        --secondary: #6E6E6E;
+        --btn: #6750a5;
+        --border: #ababab;
+        --font: 'Roboto', sans-serif;
+    }
+}
+
+/* :root {
+    --bg-dark: #121212;
+    --bg-elevated-hover-dark: #414141;
+    --bg-elevated-dark: #2a2a2a;
+    --primary-dark: #BFBFBF;
+    --secondary-dark: #6E6E6E;
+    --btn-dark: #d0bcff;
+    --border-dark: #ababab;
+    --bg-light: #f5f5f5;
+    --bg-elevated-hover-light: #e0e0e0;
+    --bg-elevated-light: #ffffff;
+    --primary-light: #15131d;
+    --secondary-light: #6E6E6E;
+    --btn-light: #6750a5;
+    --border-light: #ababab;
+    --font: 'Roboto', sans-serif;
+} */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font);
+    background-color: var(--bg);
+    margin: 0 5%;
+    display: flex;
+    flex-direction: column;
+}

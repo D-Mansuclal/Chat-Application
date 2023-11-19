@@ -16,7 +16,24 @@
     transition: all 0.2s ease-in-out;
 }
 
-.navbar__left:hover {
+.navbar__left:hover,
+.navbar__left:focus {
     background-color: var(--bg-elevated-hover);
     transition: all 0.2s ease-in-out;
 }
+
+.navbar__right > * {
+    margin-left: 0.5rem;
+}
+
+.navbar__right > *:first-child {
+    margin-left: 0;
+}
+
+@media (max-width: 860px) {
+    .navbar__left {
+        display: none;
+    }
+}
+
+

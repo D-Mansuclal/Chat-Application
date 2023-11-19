@@ -1,6 +1,10 @@
 import './Logo.css'
 
-const Logo: React.FC = () => {
+/**
+ * Component that displays the full logo as an SVG
+ * @returns FullLogo Component
+ */
+const FullLogo: React.FC = () => {
     return (
         <svg
             className='logo'
@@ -47,4 +51,4 @@ const Logo: React.FC = () => {
     );
 }
 
-export default Logo;
+export default FullLogo;

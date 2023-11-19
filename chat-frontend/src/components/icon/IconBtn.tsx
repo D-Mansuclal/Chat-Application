@@ -7,10 +7,10 @@ interface IconBtnProps {
 
 }
 
-const IconBtn = (props : IconBtnProps) => {
+const IconBtn: React.FC<IconBtnProps> = (props : IconBtnProps) => {
     const { icon, className, onClick } = props;
     return (
-        <button className={`iconBtn${className ? className : ""}`} onClick={onClick}>
+        <button className={`iconBtn${className ? className : ""}`} onClick={onClick} tabIndex={0}>
             <i className={`iconBtn__icon ${icon}`}></i>
         </button>
     )

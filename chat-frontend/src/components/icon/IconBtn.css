@@ -6,11 +6,11 @@
     font-size: 2rem;
     padding: 0.5rem;
     border-radius: 33%;
-    margin-left: 0.5rem;
     transition: all 0.2s ease-in-out;
 }
 
-.iconBtn:hover {
+.iconBtn:hover,
+.iconBtn:focus {
     color: var(--secondary);
     background-color: var(--bg-elevated-hover);
     transition: all 0.2s ease-in-out;
@@ -21,7 +21,8 @@
     transition: all 0.2s ease-in-out;
 }
 
-.iconBtn:hover .iconBtn__icon {
+.iconBtn:hover .iconBtn__icon,
+.iconBtn:focus .iconBtn__icon {
     color: var(--btn);
     transition: all 0.2s ease-in-out;
 }

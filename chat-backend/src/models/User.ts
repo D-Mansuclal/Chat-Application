@@ -14,9 +14,6 @@ export class User extends BaseEntity {
     @Column()
     password: string;
 
-    @Column()
-    ipAddress: string;
-
     @CreateDateColumn()
     createdAt: Date;
 

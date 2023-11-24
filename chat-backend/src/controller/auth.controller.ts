@@ -7,20 +7,20 @@ import dataSource from "../configs/db.config";
 
 /**
  * Register a new user to the database
- * @param req The request object containing username, email, password and ipAddress
+ * @param req The request object containing username, email, password
  * @param res The response object containing the status code and the message
  * @returns The response object containing the status code and the message
  */
 export async function register(req: Request, res: Response) {
     try {
         const MODULE_NAME = "Register";
-        const keys: string[] = ["username", "email", "password", "ipAddress"];
+        const keys: string[] = ["username", "email", "password"];
         const checkBody = validateRequest(req, keys);
         if (checkBody) return res.status(400).json({ error: checkBody });
 
-        const { username, email, password, ipAddress } = req.body;
+        const { username, email, password } = req.body;
 
-        logger.info("User creation request received.", { method: MODULE_NAME, data: { username, email, ipAddress } });
+        logger.info("User creation request received.", { method: MODULE_NAME, data: { username, email } });
 
         // Username Validation
         let usernameErrors: string[] = [];
@@ -59,17 +59,11 @@ export async function register(req: Request, res: Response) {
         if (!/[a-z]/.test(password)) passwordErrors.push("Password must contain at least one lowercase letter");
         if (!/[0-9]/.test(password)) passwordErrors.push("Password must contain at least one number");
 
-        // IP Address Validation
-        let ipErrors: string[] = [];
-
-        if (!/^((?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])[.]){3}(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$/
-            .test(ipAddress)) ipErrors.push("IP Address is not valid");
-
-        if (usernameErrors.length > 0 || passwordErrors.length > 0 || emailErrors.length > 0 || ipErrors.length > 0) {
-            logger.warn("User creation request failed.", { method: MODULE_NAME, data: { username, email, ipAddress } });
+        if (usernameErrors.length > 0 || passwordErrors.length > 0 || emailErrors.length > 0) {
+            logger.warn("User creation request failed.", { method: MODULE_NAME, data: { username, email } });
             return res.status(400).json({
                 error: "Invalid parameter data provided.",
-                invalid: { username: usernameErrors, password: passwordErrors, email: emailErrors, ipAddress: ipErrors} 
+                invalid: { username: usernameErrors, password: passwordErrors, email: emailErrors} 
             })
         }
 
@@ -77,11 +71,10 @@ export async function register(req: Request, res: Response) {
         user.username = username;
         user.email = email;
         user.password = hashSync(password, 10);
-        user.ipAddress = ipAddress;
 
         await dataSource.getRepository(User).save(user);
 
-        logger.info("User created.", { method: MODULE_NAME, data: { username, email, ipAddress } });
+        logger.info("User created.", { method: MODULE_NAME, data: { username, email } });
 
         return res.status(201).json({ message: "User created successfully" });
     }

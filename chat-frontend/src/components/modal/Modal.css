@@ -3,8 +3,8 @@
     z-index: 1;
     left: 50%;
     top: 50%;
-    width: 35%;
-    height: 60%;
+    width: 40%;
+    height: 70%;
     transform: translate(-50%, -50%);
     overflow: auto;
     background-color: var(--bg-elevated);
@@ -27,6 +27,7 @@
     animation: border-radius-appear 0.2s linear;
     border-bottom-left-radius: 50%;
 }
+
 
 @keyframes border-radius-appear {
     from {

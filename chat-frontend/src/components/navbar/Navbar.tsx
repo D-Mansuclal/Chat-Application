@@ -5,6 +5,7 @@ import { CSSTransition } from 'react-transition-group';
 import IconBtn from '../icon/IconBtn';
 import FullLogo from '../logo/FullLogo';
 import ReactModal from 'react-modal';
+import Register from '../auth/Register';
 import Search from '../form/Search';
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '../modal/Modal.css';
@@ -63,7 +64,6 @@ const Navbar: React.FC = () => {
                         classNames='modal'
                         unmountOnExit
                     >
-
                         <ReactModal className='modal'
                             overlayClassName='modal__overlay'
                             isOpen={modalOpen}
@@ -72,7 +72,10 @@ const Navbar: React.FC = () => {
                             closeTimeoutMS={200}
 
                         >
-                            <button onClick={closeModal}>Close</button>
+                            <>
+                            <IconBtn icon='bi bi-x' onClick={closeModal} />
+                            <Register />
+                            </>
                         </ReactModal>
                     </CSSTransition>
                 </div>

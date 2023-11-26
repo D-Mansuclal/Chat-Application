@@ -3,9 +3,12 @@
         --bg: #121212;
         --bg-elevated-hover: #414141;
         --bg-elevated: #2a2a2a;
+        --bg-elevated-input: #6b6b6b;
         --primary: #BFBFBF;
+        --primary-variant: #cfcfcf;
         --secondary: #6E6E6E;
         --btn: #d0bcff;
+        --error: #CF6679; 
         --font: 'Roboto', sans-serif;
     }
 }
@@ -15,10 +18,12 @@
         --bg: #f5f5f5;
         --bg-elevated-hover: #e0e0e0;
         --bg-elevated: #ffffff;
+        --bg-elevated-input: #f5f5f5;
         --primary: #15131d;
         --secondary: #6E6E6E;
         --btn: #6750a5;
         --border: #ababab;
+        --error: red;
         --font: 'Roboto', sans-serif;
     }
 }

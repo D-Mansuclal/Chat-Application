@@ -9,11 +9,14 @@ import dataSource from "../configs/db.config";
  * Register a new user to the database
  * @param req The request object containing username, email, password
  * @param res The response object containing the status code and the message
- * @returns The response object containing the status code and the message
+ * @returns 201 Created when user is created successfully
+ * @returns 400 Bad Request when Request Body is malformed or incorrect
+ * @returns 409 Conflict when a user with the same username/email exists
+ * @returns 500 Internal Server Error when a server error occurs
  */
 export async function register(req: Request, res: Response) {
+    const MODULE_NAME: string = "Register";
     try {
-        const MODULE_NAME = "Register";
         const keys: string[] = ["username", "email", "password"];
         const checkBody = validateRequest(req, keys);
         if (checkBody) return res.status(400).json({ error: checkBody });
@@ -31,10 +34,13 @@ export async function register(req: Request, res: Response) {
             usernameErrors.push("Username must only contain letters, numbers, underscores and dashes");
         }
 
-        const checkUsername = await dataSource.getRepository(User).findOne({ where: { username: username } });
-        if (checkUsername) { 
+        const usernameExists = await dataSource.getRepository(User).findOne({ where: { username: username } });
+        if (usernameExists) {
+            const reason = "Username is already taken. Please choose another one";
+            logger.warn("User creation request failed.", 
+                { method: MODULE_NAME, data: { username, email }, reason: reason  });
             return res.status(409).json({ 
-                error: "Username is already taken. Please choose another one",
+                error: reason,
                 username: username
             });
         }
@@ -42,11 +48,15 @@ export async function register(req: Request, res: Response) {
         // Email Validation
         let emailErrors: string[] = [];
 
-        if (!/^\S+@\S+\.\S+$/.test(email)) emailErrors.push("Email is not valid");
-        const checkEmail = await dataSource.getRepository(User).findOne({ where: { email: email } });
-        if (checkEmail) {
+        if (!/^\S+@\S+\.\S+$/.test(email)) emailErrors.push("Email is not in a valid format");
+        const emailExists = await dataSource.getRepository(User).findOne({ where: { email: email } });
+        if (emailExists) {
+            const reason = "Email is already taken. Please choose another one";
+            logger.warn("User creation request failed.", 
+                { method: MODULE_NAME, data: { username, email }, reason: reason });
+
             return res.status(409).json({ 
-                error: "Email is already taken. Please choose another one",
+                error: reason,
                 email: email
             });
         }
@@ -60,8 +70,12 @@ export async function register(req: Request, res: Response) {
         if (!/[0-9]/.test(password)) passwordErrors.push("Password must contain at least one number");
 
         if (usernameErrors.length > 0 || passwordErrors.length > 0 || emailErrors.length > 0) {
-            logger.warn("User creation request failed.", { method: MODULE_NAME, data: { username, email } });
-            return res.status(400).json({
+            logger.warn("User creation request failed.", {
+                method: MODULE_NAME, 
+                data: { username, email },
+                reason: { username: usernameErrors, password: passwordErrors, email: emailErrors } });
+            
+                return res.status(400).json({
                 error: "Invalid parameter data provided.",
                 invalid: { username: usernameErrors, password: passwordErrors, email: emailErrors} 
             })
@@ -79,7 +93,7 @@ export async function register(req: Request, res: Response) {
         return res.status(201).json({ message: "User created successfully" });
     }
     catch (err) {
-        console.log(err);
+        logger.error("Internal Server Error", { method: MODULE_NAME, error: err})
         return res.status(500).json({ error: "Internal server error" });
     }
 

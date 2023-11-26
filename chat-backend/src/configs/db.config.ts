@@ -54,7 +54,9 @@ const dataSource = new DataSource({
     database: database,
     synchronize: synchronize,
     logging: false,
-    entities: ['src/models/**/*.ts']
+    entities: [
+        `${process.env.NODE_ENV === 'production' ? 'dist/models/**/*.js' : 'src/models/**/*.ts'}` 
+    ]
 });
 
 if (process.env.NODE_ENV !== "test") {
@@ -65,9 +67,9 @@ if (process.env.NODE_ENV !== "test") {
     ).catch(err => {
         logger.error('Database connection failed.', { 
             method: MODULE_NAME, 
-            data: { database: process.env.NODE_ENV === "production" ? process.env.PROD_DB_SCHEMA : process.env.DEV_DB_SCHEMA, 
-            error: err 
-        } });
+            data: { database: process.env.NODE_ENV === "production" ? process.env.PROD_DB_SCHEMA : process.env.DEV_DB_SCHEMA },
+            reason: err.stack
+        });
     });
 }
 

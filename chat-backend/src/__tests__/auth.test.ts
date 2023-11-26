@@ -99,7 +99,7 @@ describe("Register", () => {
             username: user.username, email: "test@test", password: user.password
         });
         expect(response.status).toBe(400);
-        expect(response.body.invalid.email).toContain("Email is not valid");
+        expect(response.body.invalid.email).toContain("Email is not in a valid format");
     });
 
     it ("should return a 400 Bad request when password is too short (< 8 characters)", async () => {

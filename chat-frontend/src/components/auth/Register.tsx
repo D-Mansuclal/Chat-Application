@@ -8,9 +8,8 @@ import LogoIconLarge from '../logo/LogoIconLarge';
 import './auth.css';
 
 /**
- * Register component contains form that allows user to Register for the forum.
- * @props setForm - Function to set the form in the parent component
- * @returns JSX.Element containing the register component.
+ * Register component contains form that allows user to Register for the application.
+ * @returns Register component as a React Component.
  */
 const Register: React.FC = () => {
 
@@ -63,7 +62,7 @@ const Register: React.FC = () => {
                 Promise.reject("Creation Unsuccessful")
             }
 
-            // Lead to verification
+            // TODO: Lead to verification
         } catch (err: any) {
             setRegistrationError(err.response.data.error);
         }
@@ -99,8 +98,8 @@ const Register: React.FC = () => {
 
                 {loading ?
                     <Button className='loading' disabled={true} type='submit'></Button> :
-                    <Button type='submit'>Register</Button>}
-
+                    <Button type='submit'>Register</Button>
+                }
             </form>
         </div>
     );

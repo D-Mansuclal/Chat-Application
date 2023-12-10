@@ -19,7 +19,7 @@ export class RefreshToken extends BaseEntity {
     @PrimaryGeneratedColumn("uuid")
     token: string;
 
-    @ManyToOne(() => User, (user) => user.refreshTokens)
+    @ManyToOne(() => User, (user) => user.refreshTokens, { onDelete: "CASCADE" })
     user: User;
 
     @Column()
@@ -52,6 +52,18 @@ export class RefreshToken extends BaseEntity {
         this.expiresAt = new Date(Date.now() + Number(process.env.REFRESH_TOKEN_EXPIRATION) * 1000 * 60 * 60 * 24);
         const refreshToken = await dataSource.getRepository(RefreshToken).save(this);
         return refreshToken;
+    }
+    /**
+     * Check if a refresh token is expired
+     * @param refreshToken The refresh token to check
+     * @returns true if the refresh token is expired, false otherwise
+     */
+    public isExpired() {
+
+        if (this.expiresAt < new Date()) {
+            return true;
+        }
+        return false;
     }
 }
 

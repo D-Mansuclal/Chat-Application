@@ -3,13 +3,17 @@ import request from "supertest";
 import app from "../server";
 import dataSource from "../configs/db.config";
 import { User } from "../models/User";
+import { RefreshToken } from "../models/tokens/RefreshToken";
 
 beforeAll(async () => {
     await dataSource.initialize();
 });
 
 afterEach(async () => {
+    await dataSource.query("SET FOREIGN_KEY_CHECKS = 0");
+    await dataSource.getRepository(RefreshToken).clear();
     await dataSource.getRepository(User).clear();
+    await dataSource.query("SET FOREIGN_KEY_CHECKS = 1");
 });
 
 afterAll(async () => {

@@ -102,7 +102,7 @@ export async function register(req: Request, res: Response) {
 }
 
 /**
- * Authenticated a user into the application
+ * Authenticates a user into the application
  * @param req The request object containing username and password
  * @param res The response object containing the status code and the message
  * @returns 200 OK when user is successfully authenticated
@@ -147,6 +147,124 @@ export async function login(req: Request, res: Response) {
             data: { username, ipAddress: req.ip, userAgent: req.headers["user-agent"] } 
         });
         return res.status(200).json({ message: "User logged in successfully", token: token })
+
+    }
+    catch (err: any) {
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+/**
+ * Refreshed a user's access token if expired
+ * @param req The request object containing username in the body, 
+ * refresh token in the cookie and client device identifier in the cookie
+ * @param res The response object containing the status code and the message
+ * @returns 200 OK when a token is successfully refreshed
+ * @returns 400 Bad Request when Request Body or cookies are malformed or incorrect
+ * @returns 401 Unauthorized when username, refresh token or client device identifier are mismatched
+ * @returns 500 Internal Server Error when a server error occurs
+ */
+export async function refreshToken(req: Request, res: Response) {
+    const MODULE_NAME: string = "RefreshToken";
+    try {
+        const requestBodyKeys: string[] = ["username"];
+        const cookieKeys: string[] = ["refreshToken", "clientDeviceIdentifier"];
+        
+        const checkRequest = validateRequest(req, requestBodyKeys, cookieKeys);
+        if (checkRequest) return res.status(400).json({ error: checkRequest });
+        
+        const username = req.body.username;
+        const [requestToken, clientDeviceIdentifier] = [req.cookies.refreshToken, req.cookies.clientDeviceIdentifier];
+
+        logger.info("User refresh token request received.", { method: MODULE_NAME, data: { username, clientDeviceIdentifier } });
+        
+        const user = await dataSource.getRepository(User).findOne({ where: { username: username } });
+        if (!user) {
+            const reasonForLog = "User does not exist";
+            logger.warn("User refresh token request failed.", { 
+                method: MODULE_NAME,
+                data: { username, clientDeviceIdentifier, ipAddress: req.ip, userAgent: req.headers["user-agent"] },
+                reason: reasonForLog
+            });
+            return res.status(401).json({ 
+                error: "Refresh token request failed",
+                reason: "User does not exist"
+            });
+        }
+
+        const refreshToken = await dataSource.getRepository(RefreshToken).findOne({ 
+            relations: ["user"], where: { token: requestToken } 
+        });
+
+        if (!refreshToken) {
+            const reasonForLog = "Refresh token does not exist";
+            logger.warn("User refresh token request failed.", { 
+                method: MODULE_NAME,
+                data: { username, clientDeviceIdentifier, ipAddress: req.ip, userAgent: req.headers["user-agent"] },
+                reason: reasonForLog
+            });
+            return res.status(401).json({ 
+                error: "Refresh token request failed",
+                reason: "Refresh token does not exist" 
+            });
+        }
+        if (refreshToken.clientDeviceIdentifier !== clientDeviceIdentifier) {
+            const reasonForLog = "Client device identifier does not match";
+            logger.warn("User refresh token request failed.", { 
+                method: MODULE_NAME,
+                data: { username, clientDeviceIdentifier, ipAddress: req.ip, userAgent: req.headers["user-agent"] },
+                reason: reasonForLog
+            });
+            await refreshToken.remove();
+            res.clearCookie("refreshToken");
+            res.clearCookie("clientDeviceIdentifier");
+
+            // TODO: Send a notification to the client
+
+            return res.status(401).json({ 
+                error: "Refresh token request failed.",
+                reason: "Client device identifier does not match"
+            });
+        }
+
+        if (refreshToken.user.id !== user.id) {
+            const reasonForLog = "User does not match";
+            logger.warn("User refresh token request failed.", { 
+                method: MODULE_NAME,
+                data: { username, clientDeviceIdentifier, ipAddress: req.ip, userAgent: req.headers["user-agent"] },
+                reason: reasonForLog
+            });
+            return res.status(401).json({ 
+                error: "Refresh token request failed",
+                reason: "User does not match"
+            });
+        }
+        if (refreshToken.isExpired()) {
+            const reasonForLog = "Refresh token expired";
+            logger.warn("User refresh token request failed.", { 
+                method: MODULE_NAME,
+                data: { username, clientDeviceIdentifier, ipAddress: req.ip, userAgent: req.headers["user-agent"] },
+                reason: reasonForLog
+            });
+
+            await refreshToken.remove();
+            res.clearCookie("refreshToken");
+            res.clearCookie("clientDeviceIdentifier");
+
+            return res.status(401).json({ 
+                error: "Refresh token request failed",
+                reason: "Refresh token expired" 
+            });
+        }
+
+        logger.info("User refresh token request succeeded.", { method: MODULE_NAME, data: { username, clientDeviceIdentifier } });
+        const newToken = sign({ id: user.id }, String(process.env.JWT_SECRET), { expiresIn: process.env.JWT_EXPIRATION });
+
+        return res.status(200).json({ 
+            message: "Token refreshed successfully",
+            token: newToken
+        });
 
     }
     catch (err: any) {

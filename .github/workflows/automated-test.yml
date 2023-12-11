@@ -42,8 +42,8 @@ jobs:
             
             - name: Create MySQL Schemas
               run: |
-                mysql -h 127.0.0.1 -u root -p ${{ secrets.MYSQL_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DATABASE }}_1;"
-                mysql -h 127.0.0.1 -u root -p ${{ secrets.MYSQL_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DATABASE }}_2;"
+                mysql -h 127.0.0.1 -P 3306 -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DATABASE }}_1;"
+                mysql -h 127.0.0.1 -P 3306 -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DATABASE }}_2;"
 
             - name: Create .env file with Environment Variables
               run: |

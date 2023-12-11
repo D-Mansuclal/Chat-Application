@@ -135,7 +135,11 @@ export async function login(req: Request, res: Response) {
             return res.status(401).json({ error: reason });
         }
 
-        var token = sign({ id: user.id }, String(process.env.JWT_SECRET), { expiresIn: process.env.JWT_EXPIRATION });
+        var token = sign(
+            { id: user.id, username: user.username}, 
+            String(process.env.JWT_SECRET), 
+            { expiresIn: process.env.JWT_EXPIRATION }
+        );
 
         const refreshToken = await new RefreshToken().createToken(user, String(req.ip), String(req.headers["user-agent"]));
 

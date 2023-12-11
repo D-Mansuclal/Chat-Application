@@ -4,6 +4,8 @@ import app from "../server";
 import dataSource from "../configs/db.config";
 import { User } from "../models/User";
 import { RefreshToken } from "../models/tokens/RefreshToken";
+import { hashSync } from "bcrypt";
+import { verify } from "jsonwebtoken";
 
 beforeAll(async () => {
     await dataSource.initialize();
@@ -37,7 +39,7 @@ describe("Register", () => {
             email: user.email, password: user.password 
         });
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe("Missing fields in request: username");
+        expect(response.body.error).toContain("username");
     });
 
     it("should return 400 Bad Request on missing email", async () => {
@@ -45,7 +47,7 @@ describe("Register", () => {
             username: user.username, password: user.password
         });
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe("Missing fields in request: email");
+        expect(response.body.error).toContain("email");
     });
 
     it("should return 400 Bad Request on missing password", async () => {
@@ -53,7 +55,7 @@ describe("Register", () => {
             username: user.username, email: user.email
         });
         expect(response.status).toBe(400);
-        expect(response.body.error).toBe("Missing fields in request: password");
+        expect(response.body.error).toContain("password");
     });
 
     it("should return a 409 Conflict on username already taken", async () => {
@@ -136,6 +138,74 @@ describe("Register", () => {
         });
         expect(response.status).toBe(400);
         expect(response.body.invalid.password).toContain("Password must contain at least one number");
+    });
+});
+
+describe("Login", () => {
+
+    const user = new User();
+    user.username = "username";
+    user.email = "username@test.com";
+    user.password = hashSync("Test.333", 10);
+
+    beforeAll(async () => {
+        await dataSource.getRepository(User).save(user);
+    });
+
+    it("should return a 200 OK on successful login", async () => {
+        const response = await request(app).post("/api/auth/login").send({
+            username: user.username, password: "Test.333"
+        });
+        expect(response.status).toBe(200);
+        expect(response.body.token).toBeDefined();
+
+        const dbUser = await dataSource.getRepository(User).findOne({ where: { username: user.username } });
+
+        const decoded = verify(response.body.token, String(process.env.JWT_SECRET));
+
+        expect(decoded).toMatchObject({
+            id: dbUser?.id,
+            username: user.username,
+        });
+
+        const responseCookies = response.headers["set-cookie"];
+        expect(responseCookies).toHaveLength(2);
+
+        const refreshToken = responseCookies[0].split(";")[0].split("=")[1];
+        const clientDeviceIdentifier = responseCookies[1].split(";")[0].split("=")[1];
+
+        const dbRefreshToken = await dataSource.getRepository(RefreshToken).findOne({
+             relations: ["user"], where: { token: refreshToken } 
+        });
+
+        expect(dbRefreshToken?.token).toBe(refreshToken);
+        expect(dbRefreshToken?.clientDeviceIdentifier).toBe(clientDeviceIdentifier);
+        expect(dbRefreshToken?.user.username).toBe(user.username);
+        
+    });
+
+    it("should return a 400 Bad Request on missing username", async () => {
+        const response = await request(app).post("/api/auth/login").send({
+            password: "Test.333"
+        });
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("username");
+    });
+
+    it("should return a 400 Bad Request on missing password", async () => {
+        const response = await request(app).post("/api/auth/login").send({
+            username: user.username
+        });
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("password");
+    });
+
+    it("should return a 401 Unauthorized on failed login", async () => {
+        const response = await request(app).post("/api/auth/login").send({
+            username: user.username, password: "incorrect"
+        });
+        expect(response.status).toBe(401);
+        expect(response.body.error).toBe("Invalid username or password");
     });
 });
 

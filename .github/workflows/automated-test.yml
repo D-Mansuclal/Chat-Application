@@ -36,6 +36,7 @@ jobs:
             
             - name: Generate Self-signed SSL Certificate
               run: |
+                mkdir -p ${{ github.workspace }}/chat-backend/https
                 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout ${{ github.workspace }}/chat-backend/https/server.key -out ${{ github.workspace }}/chat-backend/https/server.crt -subj "/CN=example.com" -addext "subjectAltName=DNS:example.com,DNS:*.example.com,IP:127.0.0.1"
 
             

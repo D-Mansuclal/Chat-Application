@@ -1,0 +1,89 @@
+name: Automated Test CI
+
+on: 
+    push:
+        branches:
+            - main
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        
+        strategy:
+            matrix:
+                node-version: [16.x]
+
+        # Set up MySQL Database
+        services:
+            mysql:
+                image: mysql
+                env:
+                    MYSQL_ROOT_PASSWORD: '${{ secrets.MYSQL_ROOT_PASSWORD }}'
+                    MYSQL_DATABASE: '${{ secrets.MYSQL_DATABASE }}'
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd="mysqladmin ping"
+                    --health-interval=10s
+                    --health-timeout=5s
+                    --health-retries=3
+        
+        steps:
+            - uses: actions/checkout@v3
+            - name: Install Ubuntu dependencies
+              run: |
+                  sudo apt-get update
+            
+            - name: Generate Self-signed SSL Certificate
+              run: |
+                mkdir -p ${{ github.workspace }}/chat-backend/https
+                openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout ${{ github.workspace }}/chat-backend/https/server.key -out ${{ github.workspace }}/chat-backend/https/server.crt -subj "/CN=example.com" -addext "subjectAltName=DNS:example.com,DNS:*.example.com,IP:127.0.0.1"
+
+            
+            - name: Create MySQL Schemas
+              run: |
+                mysql -h 127.0.0.1 -P 3306 -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DATABASE }}_1;"
+                mysql -h 127.0.0.1 -P 3306 -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DATABASE }}_2;"
+
+            - name: Create .env file with Environment Variables
+              run: |
+                echo "NODE_ENV=test" >> ${{ github.workspace }}/chat-backend/.env
+
+                echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ${{ github.workspace }}/chat-backend/.env
+                echo "JWT_EXPIRATION=15m" >> ${{ github.workspace }}/chat-backend/.env
+                echo "REFRESH_TOKEN_EXPIRATION=30" >> ${{ github.workspace }}/chat-backend/.env
+
+                echo "PROD_SERVER_PORT=8443" >> ${{ github.workspace }}/chat-backend/.env
+                echo "DEV_SERVER_PORT=8000" >> ${{ github.workspace }}/chat-backend/.env
+                echo "TEST_SERVER_PORT=8888" >> ${{ github.workspace }}/chat-backend/.env
+
+                echo "PROD_DB_HOST=127.0.0.1" >> ${{ github.workspace }}/chat-backend/.env
+                echo "PROD_DB_PORT=3306" >> ${{ github.workspace }}/chat-backend/.env
+                echo "PROD_DB_SCHEMA=${{ secrets.MYSQL_DATABASE}}" >> ${{ github.workspace }}/chat-backend/.env
+                echo "PROD_DB_USERNAME=root" >> ${{ github.workspace }}/chat-backend/.env
+                echo "PROD_DB_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> ${{ github.workspace }}/chat-backend/.env
+
+                echo "DEV_DB_HOST=127.0.0.1" >> ${{ github.workspace }}/chat-backend/.env
+                echo "DEV_DB_PORT=3306" >> ${{ github.workspace }}/chat-backend/.env
+                echo "DEV_DB_SCHEMA=${{ secrets.MYSQL_DATABASE}}" >> ${{ github.workspace }}/chat-backend/.env
+                echo "DEV_DB_USERNAME=root" >> ${{ github.workspace }}/chat-backend/.env
+                echo "DEV_DB_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> ${{ github.workspace }}/chat-backend/.env
+
+                echo "TEST_DB_HOST=127.0.0.1" >> ${{ github.workspace }}/chat-backend/.env
+                echo "TEST_DB_PORT=3306" >> ${{ github.workspace }}/chat-backend/.env
+                echo "TEST_DB_SCHEMA=${{ secrets.MYSQL_DATABASE}}" >> ${{ github.workspace }}/chat-backend/.env
+                echo "TEST_DB_USERNAME=root" >> ${{ github.workspace }}/chat-backend/.env
+                echo "TEST_DB_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> ${{ github.workspace }}/chat-backend/.env
+
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v3
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+                  cache-dependency-path: chat-backend/package-lock.json
+
+            - name: Install Node Dependencies
+              run: npm ci
+
+            - name: Run Tests
+              run: npm run test-backend

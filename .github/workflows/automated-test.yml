@@ -3,7 +3,7 @@ name: Automated Test CI
 on: 
     push:
         branches:
-            - main
+            - CI/CD-Testing
 
 jobs:
     test:

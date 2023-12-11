@@ -57,19 +57,19 @@ jobs:
                 echo "DEV_SERVER_PORT=8000" >> ${{ github.workspace }}/chat-backend/.env
                 echo "TEST_SERVER_PORT=8888" >> ${{ github.workspace }}/chat-backend/.env
 
-                echo "PROD_DB_HOST=127.0.0.1" >> ${{ github.workspace }}/chat-backend/.env
+                echo "PROD_DB_HOST=mysql" >> ${{ github.workspace }}/chat-backend/.env
                 echo "PROD_DB_PORT=3306" >> ${{ github.workspace }}/chat-backend/.env
                 echo "PROD_DB_SCHEMA=${{ secrets.MYSQL_DATABASE}}" >> ${{ github.workspace }}/chat-backend/.env
                 echo "PROD_DB_USERNAME=root" >> ${{ github.workspace }}/chat-backend/.env
                 echo "PROD_DB_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> ${{ github.workspace }}/chat-backend/.env
 
-                echo "DEV_DB_HOST=127.0.0.1" >> ${{ github.workspace }}/chat-backend/.env
+                echo "DEV_DB_HOST=mysql" >> ${{ github.workspace }}/chat-backend/.env
                 echo "DEV_DB_PORT=3306" >> ${{ github.workspace }}/chat-backend/.env
                 echo "DEV_DB_SCHEMA=chat${{ secrets.MYSQL_DATABASE}}" >> ${{ github.workspace }}/chat-backend/.env
                 echo "DEV_DB_USERNAME=root" >> ${{ github.workspace }}/chat-backend/.env
                 echo "DEV_DB_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> ${{ github.workspace }}/chat-backend/.env
 
-                echo "TEST_DB_HOST=127.0.0.1" >> ${{ github.workspace }}/chat-backend/.env
+                echo "TEST_DB_HOST=mysql" >> ${{ github.workspace }}/chat-backend/.env
                 echo "TEST_DB_PORT=3306" >> ${{ github.workspace }}/chat-backend/.env
                 echo "TEST_DB_SCHEMA=chat_${{ secrets.MYSQL_DATABASE}}" >> ${{ github.workspace }}/chat-backend/.env
                 echo "TEST_DB_USERNAME=root" >> ${{ github.workspace }}/chat-backend/.env
@@ -82,7 +82,7 @@ jobs:
                   cache: 'npm'
                   cache-dependency-path: chat-backend/package-lock.json
 
-            - name: Install Dependencies
+            - name: Install Node Dependencies
               run: npm ci
 
             - name: Run Tests

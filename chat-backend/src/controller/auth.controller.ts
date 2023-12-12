@@ -21,7 +21,7 @@ export async function register(req: Request, res: Response) {
     const MODULE_NAME: string = "Register";
     try {
         const keys: string[] = ["username", "email", "password"];
-        const checkBody = validateRequest(req, keys);
+        const checkBody = validateRequest(req, MODULE_NAME, keys);
         if (checkBody) return res.status(400).json({ error: checkBody });
 
         const { username, email, password } = req.body;
@@ -114,7 +114,7 @@ export async function login(req: Request, res: Response) {
     const MODULE_NAME: string = "Login";
     try {
         const keys: string[] = ["username", "password"];
-        const checkBody = validateRequest(req, keys);
+        const checkBody = validateRequest(req, MODULE_NAME, keys);
         if (checkBody) return res.status(400).json({ error: checkBody });
 
         const { username, password } = req.body;
@@ -175,10 +175,10 @@ export async function refreshToken(req: Request, res: Response) {
         const requestBodyKeys: string[] = ["username"];
         const cookieKeys: string[] = ["refreshToken", "clientDeviceIdentifier"];
         
-        const checkRequest = validateRequest(req, requestBodyKeys, cookieKeys);
+        const checkRequest = validateRequest(req, MODULE_NAME, requestBodyKeys, cookieKeys);
         if (checkRequest) return res.status(400).json({ error: checkRequest });
         
-        const username = req.body.username;
+        const username: string = req.body.username;
         const [requestToken, clientDeviceIdentifier] = [req.cookies.refreshToken, req.cookies.clientDeviceIdentifier];
 
         logger.info("User refresh token request received.", { method: MODULE_NAME, data: { username, clientDeviceIdentifier } });
@@ -193,7 +193,7 @@ export async function refreshToken(req: Request, res: Response) {
             });
             return res.status(401).json({ 
                 error: "Refresh token request failed",
-                reason: "User does not exist"
+                reason: reasonForLog
             });
         }
 
@@ -210,7 +210,7 @@ export async function refreshToken(req: Request, res: Response) {
             });
             return res.status(401).json({ 
                 error: "Refresh token request failed",
-                reason: "Refresh token does not exist" 
+                reason: reasonForLog 
             });
         }
         if (refreshToken.clientDeviceIdentifier !== clientDeviceIdentifier) {
@@ -228,7 +228,7 @@ export async function refreshToken(req: Request, res: Response) {
 
             return res.status(401).json({ 
                 error: "Refresh token request failed.",
-                reason: "Client device identifier does not match"
+                reason: reasonForLog
             });
         }
 
@@ -241,7 +241,7 @@ export async function refreshToken(req: Request, res: Response) {
             });
             return res.status(401).json({ 
                 error: "Refresh token request failed",
-                reason: "User does not match"
+                reason: reasonForLog
             });
         }
         if (refreshToken.isExpired()) {
@@ -258,12 +258,16 @@ export async function refreshToken(req: Request, res: Response) {
 
             return res.status(401).json({ 
                 error: "Refresh token request failed",
-                reason: "Refresh token expired" 
+                reason: reasonForLog 
             });
         }
 
         logger.info("User refresh token request succeeded.", { method: MODULE_NAME, data: { username, clientDeviceIdentifier } });
-        const newToken = sign({ id: user.id }, String(process.env.JWT_SECRET), { expiresIn: process.env.JWT_EXPIRATION });
+        const newToken = sign({ 
+            id: user.id, username: user.username }, 
+            String(process.env.JWT_SECRET), 
+            { expiresIn: process.env.JWT_EXPIRATION 
+        });
 
         return res.status(200).json({ 
             message: "Token refreshed successfully",

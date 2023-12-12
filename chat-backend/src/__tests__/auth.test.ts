@@ -1,5 +1,5 @@
 import "dotenv/config";
-import request from "supertest";
+import request, { Response } from "supertest";
 import app from "../server";
 import dataSource from "../configs/db.config";
 import { User } from "../models/User";
@@ -207,5 +207,130 @@ describe("Login", () => {
         expect(response.status).toBe(401);
         expect(response.body.error).toBe("Invalid username or password");
     });
+});
+
+describe("Refresh Token", () => {
+
+    const user = new User;
+    user.username = "username";
+    user.email = "username@test.com";
+    user.password = hashSync("Test.333", 10);
+
+    let loginResponse: Response;
+
+    beforeEach(async () => {
+        await dataSource.getRepository(User).save(user);
+        loginResponse = await request(app).post("/api/auth/login").send({
+            username: user.username, password: "Test.333"
+        });
+    });
+
+    it("should return a 200 OK on a successful refresh", async () => {
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", loginResponse.headers["set-cookie"])
+            .send({
+                username: user.username
+            });
+        expect(response.status).toBe(200);
+        expect(response.body.token).toBeDefined();
+
+        const decoded = verify(response.body.token, String(process.env.JWT_SECRET));
+
+        expect(decoded).toMatchObject({
+            username: user.username,
+        });
+    });
+
+    it("should return a 400 Bad Request if username is not provided", async () => {
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", loginResponse.headers["set-cookie"]).send({});
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("username");
+    });
+
+    it("should return a 400 Bad Request if refreshToken cookie is not present", async () => {
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", [loginResponse.headers["set-cookie"][1]]).send({
+                username: user.username
+            });
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("refreshToken");
+    });
+
+    it("should return a 400 Bad Request if clientDeviceIdentifier cookie is not present", async () => {
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", [loginResponse.headers["set-cookie"][0]]).send({
+                username: user.username
+            });
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("clientDeviceIdentifier");
+    });
+
+    it("should return a 401 Unauthorized if refresh token does not exist", async () => {
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", ["refreshToken=Invalid-Token", loginResponse.headers["set-cookie"][1]]).send({
+                username: user.username
+            });
+        expect(response.status).toBe(401);
+        expect(response.body.reason).toBe("Refresh token does not exist");
+    });
+
+    it("should return a 401 Unauthorized and delete the refresh token if clientDeviceIdentifier is mismatched in database",
+        async () => {
+
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", [loginResponse.headers["set-cookie"][0], "clientDeviceIdentifier=Invalid"]).send({
+                username: user.username
+            });
+        expect(response.status).toBe(401);
+        expect(response.body.reason).toBe("Client device identifier does not match");
+
+        const refreshToken = await dataSource.getRepository(RefreshToken).findOne({ 
+            where: { token: loginResponse.headers["set-cookie"][0].split("=")[1].split(";")[0] } 
+        });
+        expect(refreshToken).toBeNull();
+    });
+
+    it("should return a 401 Unauthorized if username is mismatched in database",
+        async () => {
+
+        const invalidUser = new User()
+        invalidUser.username = "Invalid";
+        invalidUser.email = "Invalid@test.com";
+        invalidUser.password = hashSync("Test.333", 10);
+        await dataSource.getRepository(User).save(invalidUser);
+
+        
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", loginResponse.headers["set-cookie"]).send({
+                username: "Invalid"
+            });
+            
+            expect(response.status).toBe(401)
+            expect(response.body.reason).toBe("User does not match");
+    });
+
+    it("should return a 401 Unauthorized if refresh token is expired", async () => {
+
+        // Expire the refresh token
+        const expireToken = await dataSource.getRepository(RefreshToken)
+            .findOne({ where: { token: loginResponse.headers["set-cookie"][0].split("=")[1].split(";")[0] } });
+
+        expireToken!.expiresAt = new Date(new Date().getMinutes() - 60);
+        await dataSource.getRepository(RefreshToken).save(expireToken!);
+
+        const response = await request(app).post("/api/auth/refresh-token")
+            .set("Cookie", loginResponse.headers["set-cookie"]).send({
+                username: user.username
+            });
+
+        expect(response.status).toBe(401);
+        expect(response.body.reason).toBe("Refresh token expired");
+        
+        const refreshToken = await dataSource.getRepository(RefreshToken).findOne({ 
+            where: { token: loginResponse.headers["set-cookie"][0].split("=")[1].split(";")[0] } 
+        });
+        expect(refreshToken).toBeNull();
+    })
 });
 

@@ -6,6 +6,7 @@ import { User } from "../models/User";
 import { RefreshToken } from "../models/tokens/RefreshToken";
 import { hashSync } from "bcrypt";
 import { verify } from "jsonwebtoken";
+import { ActivationToken } from "../models/tokens/ActivationToken";
 
 beforeAll(async () => {
     await dataSource.initialize();
@@ -32,6 +33,9 @@ describe("Register", () => {
 
         const checkUser = await dataSource.getRepository(User).findOne({ where: { username: user.username } });
         expect(checkUser).toBeDefined();
+
+        const activationToken = await dataSource.getRepository(ActivationToken).findOne({ where: { user: user } });
+        expect(activationToken).toBeDefined();
     });
 
     it("should return 400 Bad Request on missing username", async () => {
@@ -147,12 +151,14 @@ describe("Login", () => {
     user.username = "username";
     user.email = "username@test.com";
     user.password = hashSync("Test.333", 10);
+    user.activated = true;
 
     beforeAll(async () => {
         await dataSource.getRepository(User).save(user);
     });
 
     it("should return a 200 OK on successful login", async () => {
+
         const response = await request(app).post("/api/auth/login").send({
             username: user.username, password: "Test.333"
         });
@@ -200,6 +206,21 @@ describe("Login", () => {
         expect(response.body.error).toContain("password");
     });
 
+    it("should return a 401 Unauthorized on an unactivated user", async () => {
+
+        const unactivatedUser = new User();
+        unactivatedUser.username = "unactivated";
+        unactivatedUser.email = "unactivated@test.com";
+        unactivatedUser.password = hashSync("Test.333", 10);
+
+        await dataSource.getRepository(User).save(unactivatedUser);
+        const response = await request(app).post("/api/auth/login").send({
+            username: unactivatedUser.username, password: "Test.333"
+        });
+        expect(response.status).toBe(401);
+        expect(response.body.error).toBe("User is not activated");
+    });
+
     it("should return a 401 Unauthorized on failed login", async () => {
         const response = await request(app).post("/api/auth/login").send({
             username: user.username, password: "incorrect"
@@ -215,6 +236,7 @@ describe("Refresh Token", () => {
     user.username = "username";
     user.email = "username@test.com";
     user.password = hashSync("Test.333", 10);
+    user.activated = true;
 
     let loginResponse: Response;
 
@@ -334,3 +356,41 @@ describe("Refresh Token", () => {
     })
 });
 
+describe("Resend Activation Email", () => {
+
+    const user = new User();
+    user.username = "Test";
+    user.email = "Test@test.com";
+    user.password = hashSync("Test.333", 10);
+
+    beforeAll(async () => {
+        await dataSource.getRepository(User).save(user);
+    });
+
+    it("Should return a 200 OK if email is sent successfully", async () => {
+
+        const response = await request(app).post("/api/auth/resend-activation-email")
+            .send({ email: user.email });
+
+        expect(response.status).toBe(200);
+
+        const activationToken = await dataSource.getRepository(ActivationToken).findOne({
+            where: { user: { email: user.email } }
+        });
+
+        expect(activationToken).toBeDefined();
+    });
+
+    it ("should return a 400 Bad Request if email is not provided", async () => {
+        const response = await request(app).post("/api/auth/resend-activation-email").send({});
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("email");
+    });
+
+    it("should return a 400 Bad Request if an email has not been registered", async () => {
+        const response = await request(app).post("/api/auth/resend-activation-email")
+            .send({ email: "Invalid@test.com" });
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("User does not exist");
+    });
+});

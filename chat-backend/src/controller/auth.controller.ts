@@ -4,6 +4,7 @@ import { User } from "../models/User";
 import { hashSync, compareSync } from "bcrypt";
 import { sign } from "jsonwebtoken";
 import { RefreshToken } from "../models/tokens/RefreshToken";
+import { ActivationToken } from "../models/tokens/ActivationToken";
 import logger from "../configs/logger.config";
 import dataSource from "../configs/db.config";
 import 'dotenv/config';
@@ -93,6 +94,13 @@ export async function register(req: Request, res: Response) {
 
         logger.info("User created.", { method: MODULE_NAME, data: { username, email } });
 
+        const activationToken = await new ActivationToken().createToken(user);
+        console.log((activationToken.token));
+
+
+        // TODO: Send activation email
+
+
         return res.status(201).json({ message: "User created successfully" });
     }
     catch (err: any) {
@@ -134,6 +142,11 @@ export async function login(req: Request, res: Response) {
             logger.warn("User login request failed.", { method: MODULE_NAME, data: { username }, reason: reasonForLog });
             return res.status(401).json({ error: reason });
         }
+        if (!user.activated) {
+            const reason = "User is not activated";
+            logger.warn("User login request failed.", { method: MODULE_NAME, data: { username }, reason: reason });
+            return res.status(401).json({ error: reason });
+        }
 
         var token = sign(
             { id: user.id, username: user.username}, 
@@ -160,7 +173,7 @@ export async function login(req: Request, res: Response) {
 }
 
 /**
- * Refreshed a user's access token if expired
+ * Refreshes a user's access token if expired
  * @param req The request object containing username in the body, 
  * refresh token in the cookie and client device identifier in the cookie
  * @param res The response object containing the status code and the message
@@ -273,6 +286,46 @@ export async function refreshToken(req: Request, res: Response) {
             message: "Token refreshed successfully",
             token: newToken
         });
+
+    }
+    catch (err: any) {
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+/**
+ * Resends the activation token to the user's email address
+ * @param req The request object containing the user's email address
+ * @param res The response object containing the status code and message
+ * @returns 200 OK on successful resend
+ * @returns 400 Bad Request on missing/invalid request body
+ * @returns 500 Internal Server Error when a server error occurs
+ */
+export async function resendActivationEmail(req: Request, res: Response) {
+    const MODULE_NAME = "Resend Activation Token";
+    try {
+        const requestBodyKeys: string[] = ["email"];
+        const checkRequest = validateRequest(req, MODULE_NAME, requestBodyKeys);
+        if (checkRequest) return res.status(400).json({ error: checkRequest });
+
+        const { email } = req.body;
+
+        const user = await dataSource.getRepository(User).findOne({ where: { email } });
+        if (!user) {
+            const reason = "User does not exist";
+            logger.warn("User activation token resend failed.", { method: MODULE_NAME, data: { email }, reason });
+            return res.status(400).json({ error: "User does not exist" });
+        }
+        await dataSource.getRepository(ActivationToken).delete({ user: { id: user.id } });
+        const activationToken = await new ActivationToken().createToken(user);
+        console.log(activationToken.token);
+
+        // TODO: Send new activation token by email
+
+        logger.info("User activation token resend succeeded.", { method: MODULE_NAME, data: { email } });
+
+        return res.status(200).json({ message: "Activation token resent successfully" });
 
     }
     catch (err: any) {

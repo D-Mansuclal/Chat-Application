@@ -55,11 +55,9 @@ export class RefreshToken extends BaseEntity {
     }
     /**
      * Check if a refresh token is expired
-     * @param refreshToken The refresh token to check
      * @returns true if the refresh token is expired, false otherwise
      */
     public isExpired() {
-
         if (this.expiresAt < new Date()) {
             return true;
         }

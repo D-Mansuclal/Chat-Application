@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from "typeorm";
 import { RefreshToken } from "./tokens/RefreshToken";
+import { ActivationToken } from "./tokens/ActivationToken";
 
 /**
   * Database model for User
@@ -7,7 +8,9 @@ import { RefreshToken } from "./tokens/RefreshToken";
   * @param {string} username - The username of the user
   * @param {string} email - The email of the user
   * @param {string} password - The encrypted password of the user
+  * @param {boolean} activated - Whether the user has been activated or not
   * @param {RefreshToken[]} refreshTokens - The refresh tokens associated with the user
+  * @param {ActivationToken} activationToken - The activation token associated with the user
   * @param {Date} createdAt - The date the user was created
   * @param {Date} updatedAt - The date the user was last updated
  */
@@ -25,8 +28,14 @@ export class User extends BaseEntity {
     @Column()
     password: string;
 
+    @Column({ default: false })
+    activated: boolean;
+
     @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
     refreshTokens: RefreshToken[];
+
+    @OneToOne(() => ActivationToken, (activationToken) => activationToken.user)
+    activationToken: ActivationToken;
 
     @CreateDateColumn()
     createdAt: Date;

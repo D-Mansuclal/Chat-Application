@@ -159,11 +159,12 @@ export async function login(req: Request, res: Response) {
         res.cookie("refreshToken", refreshToken.token, { httpOnly: true, secure: true, sameSite: "none" });
         res.cookie("clientDeviceIdentifier", 
             refreshToken.clientDeviceIdentifier, { httpOnly: true, secure: true, sameSite: "none" });
+        res.cookie("accessToken", token, { httpOnly: true, secure: true, sameSite: "none" });
 
         logger.info("User logged in.", { method: MODULE_NAME, 
             data: { username, ipAddress: req.ip, userAgent: req.headers["user-agent"] } 
         });
-        return res.status(200).json({ message: "User logged in successfully", token: token })
+        return res.status(200).json({ message: "User logged in successfully" })
 
     }
     catch (err: any) {
@@ -236,6 +237,7 @@ export async function refreshToken(req: Request, res: Response) {
             await refreshToken.remove();
             res.clearCookie("refreshToken");
             res.clearCookie("clientDeviceIdentifier");
+            res.clearCookie("accessToken");
 
             // TODO: Send a notification to the client
 
@@ -327,6 +329,17 @@ export async function resendActivationEmail(req: Request, res: Response) {
 
         return res.status(200).json({ message: "Activation token resent successfully" });
 
+    }
+    catch (err: any) {
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+export async function activateAccount(req: Request, res: Response) {
+    const MODULE_NAME = "Activate Account";
+    try {
+        console.log("IMPLEMNET")
     }
     catch (err: any) {
         logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})

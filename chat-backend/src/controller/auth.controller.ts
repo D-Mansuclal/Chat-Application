@@ -51,7 +51,7 @@ export async function register(req: Request, res: Response) {
 
         // Email Validation
         let emailErrors: string[] = [];
-
+        if (email.length > 320) emailErrors.push("Email is not in a valid format");
         if (!/^\S+@\S+\.\S+$/.test(email)) emailErrors.push("Email is not in a valid format");
         const emailExists = await dataSource.getRepository(User).findOne({ where: { email: email } });
         if (emailExists) {
@@ -270,6 +270,7 @@ export async function refreshToken(req: Request, res: Response) {
             await refreshToken.remove();
             res.clearCookie("refreshToken");
             res.clearCookie("clientDeviceIdentifier");
+            res.clearCookie("accessToken");
 
             return res.status(401).json({ 
                 error: "Refresh token request failed",
@@ -317,7 +318,7 @@ export async function resendActivationEmail(req: Request, res: Response) {
         if (!user) {
             const reason = "User does not exist";
             logger.warn("User activation token resend failed.", { method: MODULE_NAME, data: { email }, reason });
-            return res.status(400).json({ error: "User does not exist" });
+            return res.status(400).json({ error: reason });
         }
         await dataSource.getRepository(ActivationToken).delete({ user: { id: user.id } });
         const activationToken = await new ActivationToken().createToken(user);
@@ -335,11 +336,67 @@ export async function resendActivationEmail(req: Request, res: Response) {
         return res.status(500).json({ error: "Internal server error" });
     }
 }
-
+/**
+* Activates the user's account using the activation token
+* @param req The request object containing the user's username and token
+* @param res The response object containing the status code and message
+* @returns 200 OK on successful activation
+* @returns 400 Bad Request on missing/invalid request body, expired or invalid activation token, or user already activated
+* @returns 500 Internal Server Error when a server error occurs
+*/
 export async function activateAccount(req: Request, res: Response) {
     const MODULE_NAME = "Activate Account";
     try {
-        console.log("IMPLEMNET")
+        const requestBodyKeys: string[] = ["username", "token"];
+        const checkRequest = validateRequest(req, MODULE_NAME, requestBodyKeys);
+        if (checkRequest) return res.status(400).json({ error: checkRequest });
+
+        const { username, token } = req.body;
+        const activationToken = await dataSource.getRepository(ActivationToken).findOne({ 
+            relations: ["user"], where: { token } 
+        });
+        if (!activationToken) {
+            const reason = "Invalid activation token";
+            logger.warn("User activation failed.", { method: MODULE_NAME, data: { username, token }, reason });
+            return res.status(400).json({ error: reason });
+        }
+
+        if (await activationToken.isExpired()) {
+            const reason = "Activation token expired";
+            logger.warn("User activation failed.", { method: MODULE_NAME, data: { username, token }, reason });
+            return res.status(400).json({ error: reason });
+        }
+
+        const user = await dataSource.getRepository(User).findOne({ where: { username } });
+        if (!user) {
+            const reason = "User does not exist";
+            logger.warn("User activation failed.", { method: MODULE_NAME, data: { username, token }, reason });
+            return res.status(400).json({ error: reason });
+        }
+
+        if(user.activated) {
+            const reason = "User already activated";
+            logger.warn("User activation failed.", { method: MODULE_NAME, data: { username, token }, reason });
+            await activationToken.remove();
+            return res.status(400).json({ error: reason });
+        }
+
+        if (activationToken.user.id !== user.id) {
+            const reason = "User and activation token are mismatched";
+            logger.warn("User activation failed.", { method: MODULE_NAME, data: { username, token }, reason });
+            await activationToken.remove();
+            return res.status(400).json({ error: reason });
+        }
+
+        user.activated = true;
+        await dataSource.getRepository(User).save(user);
+        await activationToken.remove();
+
+        logger.info("User activation succeeded.", { method: MODULE_NAME, data: { username } });
+
+        // TODO: Send welcome email/Account activated email
+        return res.status(200).json({ message: "Account activated successfully" });
+
     }
     catch (err: any) {
         logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})

@@ -15,6 +15,7 @@ beforeAll(async () => {
 afterEach(async () => {
     await dataSource.query("SET FOREIGN_KEY_CHECKS = 0");
     await dataSource.getRepository(RefreshToken).clear();
+    await dataSource.getRepository(ActivationToken).clear();
     await dataSource.getRepository(User).clear();
     await dataSource.query("SET FOREIGN_KEY_CHECKS = 1");
 });
@@ -392,5 +393,121 @@ describe("Resend Activation Email", () => {
             .send({ email: "Invalid@test.com" });
         expect(response.status).toBe(400);
         expect(response.body.error).toContain("User does not exist");
+    });
+});
+
+describe("Activate Account", () => {
+    const user = new User();
+    user.username = "Test";
+    user.email = "Test@test.com";
+    user.password = hashSync("Test.333", 10);
+
+    beforeEach(async () => {
+        await dataSource.getRepository(User).save(user);
+    })
+
+    it("should return a 200 OK if account is activated successfully", async () => {
+
+        const activationToken = await new ActivationToken().createToken(user);
+
+        const response = await request(app).post("/api/auth/activate-account")
+            .send({ username: user.username, token: activationToken.token });
+
+        expect(response.status).toBe(200);
+
+        const activationTokenDeleted = await dataSource.getRepository(ActivationToken).findOne({
+            where: { user: { username: user.username } }
+        });
+
+        expect(activationTokenDeleted).toBeNull();
+    });
+
+    it("should return a 400 Bad Request if the activation token is invalid", async () => {
+
+        const response = await request(app).post("/api/auth/activate-account")
+            .send({ username: user.username, token: "Invalid" });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("Invalid activation token");
+    });
+
+    it("should return a 400 Bad Request if the activation token is expired", async () => {
+        const activationToken = await new ActivationToken().createToken(user);
+        const dbActivationToken = await dataSource.getRepository(ActivationToken).findOne({
+            where: { token: activationToken.token }
+        })
+
+        dbActivationToken!.expiresAt = new Date(new Date().getMinutes() - 60);
+        await dataSource.getRepository(ActivationToken).save(dbActivationToken!);
+
+        const response = await request(app).post("/api/auth/activate-account")
+            .send({ username: user.username, token: activationToken.token });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("Activation token expired");
+
+        const activationTokenDeleted = await dataSource.getRepository(ActivationToken).findOne({
+            where: { user: { username: user.username } }
+        });
+
+        expect(activationTokenDeleted).toBeNull();
+    });
+
+    it("should return a 400 Bad Request if the user does not exist", async () => {
+        const activationToken = await new ActivationToken().createToken(user);
+
+        const response = await request(app).post("/api/auth/activate-account")
+            .send({ username: "Invalid", token: activationToken.token });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("User does not exist");
+    });
+    
+
+    it("should return a 400 Bad Request if the user is already activated", async () => {
+
+        const activatedUser = new User();
+        activatedUser.username = "Activated";
+        activatedUser.email = "Activated@test.com";
+        activatedUser.password = hashSync("Test.333", 10);
+        activatedUser.activated = true;
+
+        await dataSource.getRepository(User).save(activatedUser);
+
+        const activationToken = await new ActivationToken().createToken(activatedUser);
+
+        const response = await request(app).post("/api/auth/activate-account")
+            .send({ username: activatedUser.username, token: activationToken.token });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("User already activated");
+
+        const activationTokenDeleted = await dataSource.getRepository(ActivationToken).findOne({
+            where: { user: { username: activatedUser.username } }
+        });
+
+        expect(activationTokenDeleted).toBeNull();
+    });
+
+    it("should return a 400 Bad Request if the user and activation token are mismatched", async () => {
+
+        const mismatchedUser = new User();
+        mismatchedUser.username = "Mismatched";
+        mismatchedUser.email = "Mismatched@test.com";
+        mismatchedUser.password = hashSync("Test.333", 10);
+        await dataSource.getRepository(User).save(mismatchedUser);
+
+        const activationToken = await new ActivationToken().createToken(user);
+
+        const response = await request(app).post("/api/auth/activate-account")
+            .send({ username: mismatchedUser.username, token: activationToken.token });
+
+        expect(response.status).toBe(400);
+
+        const activationTokenDeleted = await dataSource.getRepository(ActivationToken).findOne({
+            where: { user: { username: mismatchedUser.username } }
+        });
+
+        expect(activationTokenDeleted).toBeNull();
     });
 });

@@ -43,6 +43,7 @@ export class ActivationToken extends BaseEntity {
      */
     public async isExpired() {
         if (this.expiresAt < new Date()) {
+            await dataSource.getRepository(ActivationToken).remove(this);
             return true;
         }
         return false;

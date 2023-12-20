@@ -1,6 +1,6 @@
 import express from "express";
 import { Router } from "express";
-import { register, login, refreshToken, resendActivationEmail } from "../controller/auth.controller";
+import { register, login, refreshToken, resendActivationEmail, activateAccount } from "../controller/auth.controller";
 
 const router: Router = express.Router();
 
@@ -9,5 +9,6 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
 router.post("/resend-activation-email", resendActivationEmail)
+router.post("/activate-account", activateAccount);
 
 export default router;

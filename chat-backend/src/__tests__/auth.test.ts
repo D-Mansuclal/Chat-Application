@@ -4,9 +4,10 @@ import app from "../server";
 import dataSource from "../configs/db.config";
 import { User } from "../models/User";
 import { RefreshToken } from "../models/tokens/RefreshToken";
-import { hashSync } from "bcrypt";
+import { compareSync, hashSync } from "bcrypt";
 import { verify } from "jsonwebtoken";
 import { ActivationToken } from "../models/tokens/ActivationToken";
+import { PasswordResetToken } from "../models/tokens/PasswordResetToken";
 
 beforeAll(async () => {
     await dataSource.initialize();
@@ -16,6 +17,7 @@ afterEach(async () => {
     await dataSource.query("SET FOREIGN_KEY_CHECKS = 0");
     await dataSource.getRepository(RefreshToken).clear();
     await dataSource.getRepository(ActivationToken).clear();
+    await dataSource.getRepository(PasswordResetToken).clear();
     await dataSource.getRepository(User).clear();
     await dataSource.query("SET FOREIGN_KEY_CHECKS = 1");
 });
@@ -509,5 +511,99 @@ describe("Activate Account", () => {
         });
 
         expect(activationTokenDeleted).toBeNull();
+    });
+});
+
+describe("Forgot Pasword", () => {
+    const user = new User();
+    user.username = "Test";
+    user.email = "Test@test.com";
+    user.password = hashSync("Test.333", 10);
+
+    beforeEach(async () => {
+        await dataSource.getRepository(User).save(user);
+    })
+
+    it("should return a 200 OK if password reset email is sent successfully", async () => {
+        const response = await request(app).post("/api/auth/forgot-password")
+            .send({ email: user.email });
+
+        expect(response.status).toBe(200);
+        expect(response.body.message).toContain("Password reset email sent");
+
+        const passwordResetToken = await dataSource.getRepository(PasswordResetToken).findOne({
+            where: { user: { id: user.id } }
+        });
+
+        expect(passwordResetToken).toBeDefined();
+    });
+
+    it("should return a 400 Bad Request if the user does not exist", async () => {
+        const response = await request(app).post("/api/auth/forgot-password")
+            .send({ email: "Invalid" });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("User does not exist");
+    });
+});
+
+describe("Reset Password", () => {
+    const user = new User();
+    user.username = "Test";
+    user.email = "Test@test.com";
+    user.password = hashSync("Test.333", 10);
+
+    let passwordResetToken: PasswordResetToken;
+
+    beforeEach(async () => {
+        await dataSource.getRepository(User).save(user);
+        passwordResetToken = await new PasswordResetToken().createToken(user);
+    });
+
+    it("should return a 200 OK if password reset is successful", async () => {
+        const response = await request(app).post("/api/auth/reset-password")
+            .send({ token: passwordResetToken.token, password: "Test.444" });
+
+        expect(response.status).toBe(200);
+
+        const updatedUser = await dataSource.getRepository(User).findOne({ where: { id: user.id } });
+        expect(compareSync("Test.444", updatedUser?.password as string)).toBeTruthy();
+
+        const passwordResetTokenDeleted = await dataSource.getRepository(PasswordResetToken).findOne({
+            where: { user: { id: updatedUser?.id } }
+        });
+        
+        expect(passwordResetTokenDeleted).toBeNull();
+    });
+
+    it("should return a 400 Bad Request if the password reset token is invalid", async () => {
+        const response = await request(app).post("/api/auth/reset-password")
+            .send({ token: "Invalid", password: "Test.444" });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("Invalid password reset token");
+
+        await passwordResetToken.remove();;
+    });
+
+    it("should return a 400 Bad Request if the password reset token has expired", async () => {
+
+        passwordResetToken.expiresAt = new Date(new Date().getMinutes() - 60);
+        passwordResetToken.save();
+
+        const response = await request(app).post("/api/auth/reset-password")
+            .send({ token: passwordResetToken?.token, password: "Test.444" });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error).toContain("Password reset token expired");
+
+        const updatedUser = await dataSource.getRepository(User).findOne({ where: { id: user.id } });
+        expect(compareSync("Test.444", updatedUser?.password as string)).toBeFalsy();
+
+        const passwordResetTokenDeleted = await dataSource.getRepository(PasswordResetToken).findOne({
+            where: { user: { id: updatedUser?.id } }
+        });
+
+        expect(passwordResetTokenDeleted).toBeNull();
     });
 });

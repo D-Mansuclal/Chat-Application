@@ -8,6 +8,7 @@ import { ActivationToken } from "../models/tokens/ActivationToken";
 import logger from "../configs/logger.config";
 import dataSource from "../configs/db.config";
 import 'dotenv/config';
+import { PasswordResetToken } from "../models/tokens/PasswordResetToken";
 
 /**
  * Register a new user to the database
@@ -104,7 +105,7 @@ export async function register(req: Request, res: Response) {
         return res.status(201).json({ message: "User created successfully" });
     }
     catch (err: any) {
-        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
         return res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -168,7 +169,7 @@ export async function login(req: Request, res: Response) {
 
     }
     catch (err: any) {
-        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
         return res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -292,7 +293,7 @@ export async function refreshToken(req: Request, res: Response) {
 
     }
     catch (err: any) {
-        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
         return res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -332,7 +333,7 @@ export async function resendActivationEmail(req: Request, res: Response) {
 
     }
     catch (err: any) {
-        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
         return res.status(500).json({ error: "Internal server error" });
     }
 }
@@ -399,7 +400,95 @@ export async function activateAccount(req: Request, res: Response) {
 
     }
     catch (err: any) {
-        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack})
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
         return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+/**
+ * Sends a password reset email to the user
+ * @param req The request containing the user's email
+ * @param res The response object containing the status code and message
+ * @returns 200 OK on successfully sending the password reset email
+ * @returns 400 Bad Request on missing/invalid request body, or user does not exist
+ * @returns 500 Internal Server Error when a server error occurs
+ */
+export async function forgotPassword(req: Request, res: Response) {
+    const MODULE_NAME = "Forgot Password";
+    try {
+        const requestBodyKeys: string[] = ["email"];
+        const checkRequest = validateRequest(req, MODULE_NAME, requestBodyKeys);
+        if (checkRequest) return res.status(400).json({ error: checkRequest });
+
+        const { email } = req.body;
+        const user = await dataSource.getRepository(User).findOne({ where: { email } });
+        if (!user) {
+            const reason = "User does not exist";
+            logger.warn("User forgot password failed.", { method: MODULE_NAME, data: { email }, reason });
+            return res.status(400).json({ error: reason });
+        }
+        await dataSource.getRepository(PasswordResetToken).delete({ user: { id: user.id } });
+        const passwordResetToken = await new PasswordResetToken().createToken(user);
+        console.log(passwordResetToken.token);
+
+        // TODO: Send password reset email
+
+        logger.info("Password reset email sent.", { method: MODULE_NAME, data: { email } });
+        return res.status(200).json({ message: "Password reset email sent successfully" });
+    }
+    catch (err: any) {
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
+
+/**
+ * Reset the user's password
+ * @param req The request containing the password reset token and new password
+ * @param res The response object containing the status code and message
+ * @returns 200 OK on successful password reset
+ * @returns 400 Bad Request on missing/invalid request body, or password reset token is invalid
+ * @returns 500 Internal Server Error when a server error occurs
+ */
+export async function resetPassword(req: Request, res: Response) {
+    const MODULE_NAME = "Reset Password"
+    try {
+        const requestBodyKeys: string[] = ["token", "password"];
+        const checkRequest = validateRequest(req, MODULE_NAME, requestBodyKeys);
+        if (checkRequest) return res.status(400).json({ error: checkRequest });
+
+        const { token, password } = req.body;
+        const passwordResetToken = await dataSource.getRepository(PasswordResetToken).findOne({ 
+            relations:["user"], where: { token } 
+        });
+        if (!passwordResetToken) {
+            const reason = "Invalid password reset token";
+            logger.warn("Password reset failed.", { method: MODULE_NAME, data: { token }, reason });
+            return res.status(400).json({ error: reason });
+        }
+
+        if (await passwordResetToken.isExpired()) {
+            const reason = "Password reset token expired";
+            logger.warn("Password reset failed.", { method: MODULE_NAME, data: { token }, reason });
+            return res.status(400).json({ error: reason });
+        }
+
+        const user = await dataSource.getRepository(User).findOne({ where: { id: passwordResetToken.user.id } });
+        if (!user) {
+            const reason = "User does not exist";
+            logger.warn("Password reset failed.", { method: MODULE_NAME, data: { token }, reason });
+            return res.status(400).json({ error: reason });
+        }
+
+        user.password = hashSync(password, 10);
+        await dataSource.getRepository(User).save(user);
+        await passwordResetToken.remove();
+
+        logger.info("Password reset succeeded.", { method: MODULE_NAME, data: { email: user.email } });
+        return res.status(200).json({ message: "Password reset successfully" });
+
+    }
+    catch(err: any) {
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
     }
 }

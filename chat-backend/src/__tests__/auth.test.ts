@@ -607,3 +607,57 @@ describe("Reset Password", () => {
         expect(passwordResetTokenDeleted).toBeNull();
     });
 });
+
+describe("Logging out", () => {
+
+    const user = new User();
+    user.username = "Test";
+    user.email = "Test@test.com";
+    user.password = hashSync("Test.333", 10);
+    user.activated = true;
+
+    let loginResponse: Response;
+
+    beforeEach(async () => {
+        await dataSource.getRepository(User).save(user);
+        loginResponse = await request(app).post("/api/auth/login")
+            .send({ username: user.username, password: "Test.333" });
+    });
+
+    it("should return a 200 OK if logout is successful", async () => {
+        const response = await request(app).post("/api/auth/logout")
+            .set("Cookie", loginResponse.headers["set-cookie"])
+
+        const refreshToken = loginResponse.headers["set-cookie"][0].split("=")[1].split(";")[0];
+        const refreshTokenAfterLogout = response.headers["set-cookie"][0].split("=")[1].split(";")[0];
+        const clientDeviceIdentifierAfterLogout = response.headers["set-cookie"][1].split("=")[1].split(";")[0];
+
+        expect(response.status).toBe(200);
+        expect(refreshTokenAfterLogout).toBeFalsy();
+        expect(clientDeviceIdentifierAfterLogout).toBeFalsy();
+
+        const refreshTokenDeleted = await dataSource.getRepository(RefreshToken).findOne({ where: { token: refreshToken } });
+        expect(refreshTokenDeleted).toBeNull();
+    });
+
+    it("should only log out the session within the same client device", async () => {
+        const secondLoginResponse = await request(app).post("/api/auth/login")
+            .send({ username: user.username, password: "Test.333" });
+
+        const firstRefreshToken = loginResponse.headers["set-cookie"][0].split("=")[1].split(";")[0];
+        const firstClientDeviceIdentifier = loginResponse.headers["set-cookie"][1].split("=")[1].split(";")[0];
+        const secondRefreshToken = secondLoginResponse.headers["set-cookie"][0].split("=")[1].split(";")[0];
+
+        const response = await request(app).post("/api/auth/logout")
+            .set("Cookie", secondLoginResponse.headers["set-cookie"]);
+
+        expect(response.status).toBe(200);
+
+        const firstRefreshTokenInDb = await dataSource.getRepository(RefreshToken).findOne({ where: { token: firstRefreshToken } });
+        expect(firstRefreshTokenInDb).toBeDefined();
+        expect(firstRefreshTokenInDb?.clientDeviceIdentifier).toEqual(firstClientDeviceIdentifier);
+
+        const secondRefreshTokenInDb = await dataSource.getRepository(RefreshToken).findOne({ where: { token: secondRefreshToken } });
+        expect(secondRefreshTokenInDb).toBeNull();
+    });
+});

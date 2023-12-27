@@ -5,10 +5,10 @@ import { hashSync, compareSync } from "bcrypt";
 import { sign } from "jsonwebtoken";
 import { RefreshToken } from "../models/tokens/RefreshToken";
 import { ActivationToken } from "../models/tokens/ActivationToken";
+import { PasswordResetToken } from "../models/tokens/PasswordResetToken";
 import logger from "../configs/logger.config";
 import dataSource from "../configs/db.config";
 import 'dotenv/config';
-import { PasswordResetToken } from "../models/tokens/PasswordResetToken";
 
 /**
  * Register a new user to the database
@@ -490,5 +490,50 @@ export async function resetPassword(req: Request, res: Response) {
     }
     catch(err: any) {
         logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
+    }
+}
+
+/**
+ * Log a user out of the application
+ * @param req The request containing a cookie with the refresh token and client device identifier
+ * @param res The response object containing the status code and message
+ * @returns 200 OK on successful logout
+ * @returns 400 Bad Request on missing/invalid request body
+ * @returns 500 Internal Server Error when a server error occurs
+ */
+export async function logout(req: Request, res: Response) {
+    const MODULE_NAME = "Logout";
+    try {
+        const cookieKeys = ["refreshToken", "clientDeviceIdentifier"];
+        const checkRequest = validateRequest(req, MODULE_NAME, null, cookieKeys);
+        if (checkRequest) return res.status(400).json({ error: checkRequest });
+
+        const { refreshToken, clientDeviceIdentifier } = req.cookies;
+        const dbRefreshToken = await dataSource.getRepository(RefreshToken).findOne({
+            relations: ["user"], where: { token: refreshToken, clientDeviceIdentifier }
+        });
+
+        if (!dbRefreshToken) {
+            const reason = "Invalid refresh token";
+            logger.warn("Logout error.", { method: MODULE_NAME, data: { refreshToken, clientDeviceIdentifier }, reason });
+        }
+        else {
+            await dataSource.getRepository(RefreshToken).delete({ token: refreshToken, clientDeviceIdentifier });
+        }
+        res.clearCookie("refreshToken");
+        res.clearCookie("clientDeviceIdentifier");
+        res.clearCookie("accessToken");
+
+        logger.info("Logout succeeded.", { method: MODULE_NAME, data: { 
+            username: dbRefreshToken?.user?.username,
+            clientDeviceIdentifier: clientDeviceIdentifier
+        } });
+
+        return res.status(200).json({ message: "Logout succeeded" });
+
+    }
+    catch(err: any) {
+        logger.error("Internal Server Error", { method: MODULE_NAME, reason: err.stack })
+        return res.status(500).json({ error: "Internal server error" });
     }
 }

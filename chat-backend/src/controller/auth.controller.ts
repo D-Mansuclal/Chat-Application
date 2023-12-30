@@ -6,6 +6,9 @@ import { sign } from "jsonwebtoken";
 import { RefreshToken } from "../models/tokens/RefreshToken";
 import { ActivationToken } from "../models/tokens/ActivationToken";
 import { PasswordResetToken } from "../models/tokens/PasswordResetToken";
+import { sendActivationEmail } from "../templates/emails/activationEmail";
+import { sendPasswordResetEmail } from "../templates/emails/passwordResetEmail";
+import { sendUnusualAccountActivityEmail } from "../templates/emails/unusualAccountActivityEmail";
 import logger from "../configs/logger.config";
 import dataSource from "../configs/db.config";
 import 'dotenv/config';
@@ -99,8 +102,7 @@ export async function register(req: Request, res: Response) {
         console.log((activationToken.token));
 
 
-        // TODO: Send activation email
-
+        if (Boolean(process.env.TOGGLE_EMAILS)) sendActivationEmail(username, email, activationToken.token);
 
         return res.status(201).json({ message: "User created successfully" });
     }
@@ -240,7 +242,9 @@ export async function refreshToken(req: Request, res: Response) {
             res.clearCookie("clientDeviceIdentifier");
             res.clearCookie("accessToken");
 
-            // TODO: Send a notification to the client
+            if (Boolean(process.env.TOGGLE_EMAILS)) {
+                sendUnusualAccountActivityEmail(user.username, user.email, req.ip!, req.headers["user-agent"]!);
+            }
 
             return res.status(401).json({ 
                 error: "Refresh token request failed.",
@@ -325,7 +329,7 @@ export async function resendActivationEmail(req: Request, res: Response) {
         const activationToken = await new ActivationToken().createToken(user);
         console.log(activationToken.token);
 
-        // TODO: Send new activation token by email
+        if (Boolean(process.env.TOGGLE_EMAILS)) sendActivationEmail(user.username, email, activationToken.token);
 
         logger.info("User activation token resend succeeded.", { method: MODULE_NAME, data: { email } });
 
@@ -395,7 +399,6 @@ export async function activateAccount(req: Request, res: Response) {
 
         logger.info("User activation succeeded.", { method: MODULE_NAME, data: { username } });
 
-        // TODO: Send welcome email/Account activated email
         return res.status(200).json({ message: "Account activated successfully" });
 
     }
@@ -431,7 +434,7 @@ export async function forgotPassword(req: Request, res: Response) {
         const passwordResetToken = await new PasswordResetToken().createToken(user);
         console.log(passwordResetToken.token);
 
-        // TODO: Send password reset email
+        if (Boolean(process.env.TOGGLE_EMAILS)) sendPasswordResetEmail(user.username, email, passwordResetToken.token);
 
         logger.info("Password reset email sent.", { method: MODULE_NAME, data: { email } });
         return res.status(200).json({ message: "Password reset email sent successfully" });
@@ -483,6 +486,7 @@ export async function resetPassword(req: Request, res: Response) {
         user.password = hashSync(password, 10);
         await dataSource.getRepository(User).save(user);
         await passwordResetToken.remove();
+        await dataSource.getRepository(RefreshToken).delete({ user: { id: user.id } });
 
         logger.info("Password reset succeeded.", { method: MODULE_NAME, data: { email: user.email } });
         return res.status(200).json({ message: "Password reset successfully" });

@@ -1,9 +1,12 @@
-name: Automated Test CI
+name: Automated Test CI for the Backend
 
 on: 
     push:
         branches:
             - main
+        paths:
+            - 'chat-backend/**'
+            - '.github/workflows/backend-automated-test.yml'
 
 jobs:
     test:
@@ -92,7 +95,7 @@ jobs:
                   cache-dependency-path: chat-backend/package-lock.json
 
             - name: Install Node Dependencies
-              run: npm ci
+              run: npm ci --prefix chat-backend
 
             - name: Run Tests
               run: npm run test-backend

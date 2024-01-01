@@ -7,7 +7,7 @@
   "scripts": {
     "start": "cross-env NODE_ENV=production node .",
     "dev": "cross-env NODE_ENV=development npx nodemon src/index.ts",
-    "test": "cross-env NODE_ENV=test jest --detectOpenHandles --config ./src/configs/jest.config.ts",
+    "test": "cross-env TOGGLE_EMAILS=0 NODE_ENV=test jest --detectOpenHandles --config ./src/configs/jest.config.ts",
     "build": "tsc"
   },
   "author": "D Mansuclal",

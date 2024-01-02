@@ -118,7 +118,8 @@ export async function register(req: Request, res: Response) {
  * @param res The response object containing the status code and the message
  * @returns 200 OK when user is successfully authenticated
  * @returns 400 Bad Request when Request Body is malformed or incorrect
- * @returns 401 Unauthorized when username or password is incorrect
+ * @returns 401 Unauthorized when account is not activated
+ * @returns 404 when username or password is incorrect or not found
  * @returns 500 Internal Server Error when a server error occurs
  */
 export async function login(req: Request, res: Response) {
@@ -137,13 +138,13 @@ export async function login(req: Request, res: Response) {
             const reason = "Invalid username or password";
             const reasonForLog = "Username does not exist";
             logger.warn("User login request failed.", { method: MODULE_NAME, data: { username }, reason: reasonForLog });
-            return res.status(401).json({ error: reason });
+            return res.status(404).json({ error: reason });
         }
         if (!compareSync(password, user.password)) {
             const reason = "Invalid username or password";
             const reasonForLog = "Password is incorrect";
             logger.warn("User login request failed.", { method: MODULE_NAME, data: { username }, reason: reasonForLog });
-            return res.status(401).json({ error: reason });
+            return res.status(404).json({ error: reason });
         }
         if (!user.activated) {
             const reason = "User is not activated";

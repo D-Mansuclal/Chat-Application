@@ -224,11 +224,11 @@ describe("Login", () => {
         expect(response.body.error).toBe("User is not activated");
     });
 
-    it("should return a 401 Unauthorized on failed login", async () => {
+    it("should return a 404 Unauthorized on invalid username", async () => {
         const response = await request(app).post("/api/auth/login").send({
             username: user.username, password: "incorrect"
         });
-        expect(response.status).toBe(401);
+        expect(response.status).toBe(404);
         expect(response.body.error).toBe("Invalid username or password");
     });
 });

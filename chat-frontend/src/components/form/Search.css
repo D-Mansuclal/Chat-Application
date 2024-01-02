@@ -11,6 +11,25 @@
     padding: 0.5rem;
 }
 
+@media screen and (max-width: 860px) and (min-width: 456px) {
+    .search {
+        width: 70%;
+    }
+}
+
+@media screen and (max-width: 456px) and (min-width: 360px) {
+    .search {
+        width: 60%;
+    }
+}
+
+@media screen and (max-width: 360px) and (min-width: 0px) {
+    .search {
+        width: 80%;
+    }
+    
+}
+
 .search:focus-within {
     transition: opacity 0.3s ease-in-out;
     opacity: 1;

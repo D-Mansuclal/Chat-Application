@@ -2,16 +2,31 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { authService } from '../../services/AuthService';
+import { AuthenticationModalTypes } from '../modal/AuthenticationModal';
 import * as yup from 'yup';
 import Button from '../form/Button';
 import LogoIconLarge from '../logo/LogoIconLarge';
 import './auth.css';
 
 /**
- * Register component contains form that allows user to Register for the application.
- * @returns Register component as a React Component.
+ * Interface for Register component props.
+ * @param switchModalContents - Function to switch modal contents
+ * @see {@link Register} for component
  */
-const Register: React.FC = () => {
+interface RegisterProps {
+    switchModalContents: (modal: AuthenticationModalTypes) => void
+}
+
+/**
+ * Register component contains form that allows user to Register for the application.
+ * @param registerProps - Register component props
+ * @returns Register component as a React Component.
+ * @see {@link RegisterProps} for component props
+ */
+const Register: React.FC<RegisterProps> = (registerProps: RegisterProps) => {
+
+    // Props
+    const { switchModalContents } = registerProps;
 
     // States
     const [registrationError, setRegistrationError] = useState(String(""));
@@ -57,13 +72,12 @@ const Register: React.FC = () => {
         try {
             const { username, email, password } = data
             setLoading(true)
-            const res = await authService.register(username, email, password);
-            if (res.status !== 401) {
-                Promise.reject("Creation Unsuccessful")
-            }
-
+            await authService.register(username, email, password);
             // TODO: Lead to verification
         } catch (err: any) {
+            if (err.response.status === 401) {
+                Promise.reject("Creation Unsuccessful")
+            }
             setRegistrationError(err.response.data.error);
         }
         finally {
@@ -84,22 +98,37 @@ const Register: React.FC = () => {
             <form className='auth__form' onSubmit={handleSubmit(onRegister)}>
                 {registrationError && <p className='auth__error'>{registrationError}</p>}
 
-                <input type="text" placeholder="Username" {...register('username')} />
+                <input className={errors.username && 'auth__input-error'}
+                    type="text" placeholder="Username" {...register('username')} 
+                />
                 {errors.username && <p className='auth__error'>{String(errors.username?.message)}</p>}
 
-                <input type="text" placeholder="Email" {...register('email')} />
+                <input className={errors.email && 'auth__input-error auth__no-margin-top'} 
+                    type="text" placeholder="Email" {...register('email')}
+                />
                 {errors.email && <p className='auth__error'>{String(errors.email?.message)}</p>}
 
-                <input type="password" placeholder="Password" {...register('password')} />
+                <input className={errors.password && 'auth__input-error auth__no-margin-top'} 
+                    type="password" placeholder="Password" {...register('password')} 
+                />
                 {errors.password && <p className='auth__error'>{String(errors.password?.message)}</p>}
 
-                <input type="password" placeholder="Confirm Password" {...register('confirmPassword')} />
+                <input className={errors.confirmPassword && 'auth__input-error auth__no-margin-top'} 
+                    type="password" placeholder="Confirm Password" {...register('confirmPassword')}
+                />
                 {errors.confirmPassword && <p className='auth__error'>{String(errors.confirmPassword?.message)}</p>}
 
                 {loading ?
                     <Button className='loading' disabled={true} type='submit'></Button> :
                     <Button type='submit'>Register</Button>
                 }
+
+                <button className='auth__switch-form'
+                    type='button'
+                    onClick={() => switchModalContents(AuthenticationModalTypes.LOGIN)}
+                >
+                    Already have an account?
+                </button>
             </form>
         </div>
     );

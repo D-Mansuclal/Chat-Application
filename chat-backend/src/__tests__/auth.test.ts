@@ -384,16 +384,27 @@ describe("Resend Activation Email", () => {
         expect(activationToken).toBeDefined();
     });
 
-    it ("should return a 400 Bad Request if email is not provided", async () => {
+    it("should return a 400 Bad Request if email is not provided", async () => {
         const response = await request(app).post("/api/auth/resend-activation-email").send({});
         expect(response.status).toBe(400);
         expect(response.body.error).toContain("email");
     });
 
-    it("should return a 400 Bad Request if an email has not been registered", async () => {
+    it("should return a 403 Forbidden if the email is already activated", async () => {
+        user.activated = true;
+        await dataSource.getRepository(User).save(user);
+
+        const response = await request(app).post("/api/auth/resend-activation-email")
+            .send({ email: user.email });
+
+        expect(response.status).toBe(403);
+        expect(response.body.error).toContain("already activated");
+    });
+
+    it("should return a 404 Not Found if the email is not linked to a user", async () => {
         const response = await request(app).post("/api/auth/resend-activation-email")
             .send({ email: "Invalid@test.com" });
-        expect(response.status).toBe(400);
+        expect(response.status).toBe(404);
         expect(response.body.error).toContain("User does not exist");
     });
 });

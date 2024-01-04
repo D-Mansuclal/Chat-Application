@@ -101,8 +101,7 @@ export async function register(req: Request, res: Response) {
         const activationToken = await new ActivationToken().createToken(user);
         console.log((activationToken.token));
 
-
-        if (Boolean(process.env.TOGGLE_EMAILS)) sendActivationEmail(username, email, activationToken.token);
+        if (Number(process.env.TOGGLE_EMAILS) === 1) sendActivationEmail(username, email, activationToken.token);
 
         return res.status(201).json({ message: "User created successfully" });
     }
@@ -149,7 +148,7 @@ export async function login(req: Request, res: Response) {
         if (!user.activated) {
             const reason = "User is not activated";
             logger.warn("User login request failed.", { method: MODULE_NAME, data: { username }, reason: reason });
-            return res.status(401).json({ error: reason });
+            return res.status(401).json({ error: reason, email: user.email });
         }
 
         var token = sign(
@@ -243,7 +242,7 @@ export async function refreshToken(req: Request, res: Response) {
             res.clearCookie("clientDeviceIdentifier");
             res.clearCookie("accessToken");
 
-            if (Boolean(process.env.TOGGLE_EMAILS)) {
+            if (Number(process.env.TOGGLE_EMAILS) === 1) {
                 sendUnusualAccountActivityEmail(user.username, user.email, req.ip!, req.headers["user-agent"]!);
             }
 
@@ -309,6 +308,8 @@ export async function refreshToken(req: Request, res: Response) {
  * @param res The response object containing the status code and message
  * @returns 200 OK on successful resend
  * @returns 400 Bad Request on missing/invalid request body
+ * @returns 403 Forbidden when user already activated
+ * @returns 404 Not Found when user does not exist
  * @returns 500 Internal Server Error when a server error occurs
  */
 export async function resendActivationEmail(req: Request, res: Response) {
@@ -324,13 +325,20 @@ export async function resendActivationEmail(req: Request, res: Response) {
         if (!user) {
             const reason = "User does not exist";
             logger.warn("User activation token resend failed.", { method: MODULE_NAME, data: { email }, reason });
-            return res.status(400).json({ error: reason });
+            return res.status(404).json({ error: reason });
         }
+
+        if (user.activated) {
+            const reason = "User already activated";
+            logger.warn("User activation token resend failed.", { method: MODULE_NAME, data: { email }, reason });
+            return res.status(403).json({ error: reason });
+        }
+
         await dataSource.getRepository(ActivationToken).delete({ user: { id: user.id } });
         const activationToken = await new ActivationToken().createToken(user);
         console.log(activationToken.token);
 
-        if (Boolean(process.env.TOGGLE_EMAILS)) sendActivationEmail(user.username, email, activationToken.token);
+        if (Number(process.env.TOGGLE_EMAILS) === 1) sendActivationEmail(user.username, email, activationToken.token);
 
         logger.info("User activation token resend succeeded.", { method: MODULE_NAME, data: { email } });
 
@@ -435,7 +443,7 @@ export async function forgotPassword(req: Request, res: Response) {
         const passwordResetToken = await new PasswordResetToken().createToken(user);
         console.log(passwordResetToken.token);
 
-        if (Boolean(process.env.TOGGLE_EMAILS)) sendPasswordResetEmail(user.username, email, passwordResetToken.token);
+        if (Number(process.env.TOGGLE_EMAILS) === 1) sendPasswordResetEmail(user.username, email, passwordResetToken.token);
 
         logger.info("Password reset email sent.", { method: MODULE_NAME, data: { email } });
         return res.status(200).json({ message: "Password reset email sent successfully" });

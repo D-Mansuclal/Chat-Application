@@ -23,10 +23,10 @@ export const authService= {
                     email: email,
                     password: password,
                 }
-            })
+            });
         }
         catch (err: any) {
-            return Promise.reject(err)
+            return Promise.reject(err);
         }
     },
 
@@ -46,10 +46,31 @@ export const authService= {
                     username: username,
                     password: password,
                 }
-            })
+            });
         }
         catch (err: any) {
-            return Promise.reject(err)
+            return Promise.reject(err);
+        }
+    },
+
+    /**
+     * Posts to the backend /api/auth/resend-activation-email endpoint to resend the activation email
+     * @param email The email of the user needed to be activated
+     * @returns Promise with HTTP status 200 from the server when the activation email is sent
+     * @throws Promise with error response from server (status codes 400, 403, 404, 500)
+     */
+    resendActivationEmail: async (email: string) => {
+        try {
+            return axios({
+                method: "post",
+                url: "/api/auth/resend-activation-email",
+                data: {
+                    email: email
+                }
+            });
+        }
+        catch (err: any) {
+            return Promise.reject(err);
         }
     }
 }

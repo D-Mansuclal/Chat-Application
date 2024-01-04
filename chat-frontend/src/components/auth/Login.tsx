@@ -4,6 +4,7 @@ import { authService } from "../../services/AuthService";
 import { AuthenticationModalTypes } from '../modal/AuthenticationModal';
 import Button from "../form/Button";
 import LogoIconLarge from "../logo/LogoIconLarge";
+import './Auth.css';
 
 /**
  * Interface for Login component props.
@@ -12,7 +13,7 @@ import LogoIconLarge from "../logo/LogoIconLarge";
  * @see {@link Login} for component
  */
 interface LoginProps {
-    switchModalContents: (modal: AuthenticationModalTypes) => void,
+    switchModalContents: (modal: AuthenticationModalTypes, email?: string) => void,
     closeModal: () => void
 }
 
@@ -47,8 +48,7 @@ const Login: React.FC<LoginProps> = (loginProps: LoginProps) => {
         }
         catch (err: any) {
             if (err.response.status === 401) {
-                // TODO: Move to activate account page when implemented
-                console.log("TEST")
+                switchModalContents(AuthenticationModalTypes.ACTIVATE, err.response.data.email);
             }
             setLoginError(err.response.data.error);
         }

@@ -6,7 +6,7 @@ import { AuthenticationModalTypes } from '../modal/AuthenticationModal';
 import * as yup from 'yup';
 import Button from '../form/Button';
 import LogoIconLarge from '../logo/LogoIconLarge';
-import './auth.css';
+import './Auth.css';
 
 /**
  * Interface for Register component props.
@@ -14,7 +14,7 @@ import './auth.css';
  * @see {@link Register} for component
  */
 interface RegisterProps {
-    switchModalContents: (modal: AuthenticationModalTypes) => void
+    switchModalContents: (modal: AuthenticationModalTypes, email?: string) => void
 }
 
 /**
@@ -73,7 +73,7 @@ const Register: React.FC<RegisterProps> = (registerProps: RegisterProps) => {
             const { username, email, password } = data
             setLoading(true)
             await authService.register(username, email, password);
-            // TODO: Lead to verification
+            switchModalContents(AuthenticationModalTypes.ACTIVATE, email);
         } catch (err: any) {
             if (err.response.status === 401) {
                 Promise.reject("Creation Unsuccessful")

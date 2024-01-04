@@ -4,6 +4,8 @@ import ReactModal from "react-modal"
 import Register from "../auth/Register"
 import Login from "../auth/Login"
 import IconBtn from "../icon/IconBtn"
+import ActivateAccount from "../auth/ActivateAccount"
+import './Modal.css'
 
 /**
  * The types of modals that can be displayed
@@ -40,14 +42,17 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = (authenticationM
 
     // States
     const [modalContents, setModalContents] = useState<AuthenticationModalTypes>(AuthenticationModalTypes.LOGIN);
+    const [email, setEmail] = useState<string | undefined>();
 
     /**
      * Switches between different modal contents
      * @param type - The type of modal to switch to
+     * @param email - The email of the user if the user is not activated
      * @see {@link AuthenticationModalTypes} for modal types
      */
-    const switchModalContents = (type: AuthenticationModalTypes) => {
+    const switchModalContents = (type: AuthenticationModalTypes, email?: string) => {
         setModalContents(type);
+        if (email) setEmail(email);
     }
 
     return (
@@ -73,6 +78,10 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = (authenticationM
 
                     {modalContents === AuthenticationModalTypes.REGISTER && (
                         <Register switchModalContents={switchModalContents} />
+                    )}
+
+                    {modalContents === AuthenticationModalTypes.ACTIVATE && email &&(
+                        <ActivateAccount switchModalContents={switchModalContents} email={email}/>
                     )}
                 </>
             </ReactModal>

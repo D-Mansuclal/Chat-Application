@@ -11,6 +11,21 @@
     cursor: pointer;
 }
 
+.button__disabled {
+    background-color: var(--bg-elevated-input);
+    border: 2px solid var(--bg-elevated-hover);
+    border-radius: 5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.button__disabled:hover, .button__disabled:focus {
+    background-color: var(--bg-elevated-hover) !important;
+    border: 2px solid var(--bg-elevated-input);
+    color: var(--primary-variant) !important;
+    cursor: not-allowed;
+}
+
 .button:hover, .button:focus {
     background-color: var(--btn);
     color: var(--bg-elevated);
@@ -24,7 +39,7 @@
     border: 2px solid var(--bg-elevated-hover);
     border-radius: 5px;
     font-weight: 500;
-    cursor: pointer;
+    cursor: not-allowed;
     position: relative;
 }
 

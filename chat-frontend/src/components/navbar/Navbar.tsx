@@ -7,7 +7,6 @@ import ReactModal from 'react-modal';
 import Search from '../form/Search';
 import AuthenticationModal from '../modal/AuthenticationModal';
 import "bootstrap-icons/font/bootstrap-icons.css";
-import '../modal/Modal.css';
 import './Navbar.css';
 
 /**
@@ -22,6 +21,7 @@ const Navbar: React.FC = () => {
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const { width } = useWindowDimensions();
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
+
 
     /**
      * Function to open the modal

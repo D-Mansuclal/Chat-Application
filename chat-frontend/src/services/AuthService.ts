@@ -72,5 +72,28 @@ export const authService= {
         catch (err: any) {
             return Promise.reject(err);
         }
+    },
+
+    /**
+     * Posts to the backend /api/auth/activate-account endpoint to activate the account
+     * @param token The activation token from the email
+     * @param username The username of the user
+     * @returns Promise with HTTP status 200 from the server when the account is activated
+     * @throws Promise with error response from server (status codes 400, 500)
+     */
+    activateAccount: async (token: string, username: string) => {
+        try {
+            return axios({
+                method: "post",
+                url: "/api/auth/activate-account",
+                data: {
+                    token: token,
+                    username: username
+                }
+            })
+        }
+        catch (err: any) {
+            return Promise.reject(err);
+        }
     }
 }

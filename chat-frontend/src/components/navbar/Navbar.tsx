@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWindowDimensions } from '../../hooks/useWindowDimensions';
 import { Link } from 'react-router-dom';
 import IconBtn from '../icon/IconBtn';
@@ -10,18 +10,32 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import './Navbar.css';
 
 /**
- * Component that displays the navbar
- * @returns Navbar Component
+ * Interface for Navbar component props
+ * @param accountActivatedRedirect - Whether the user has been redirected from the account activation page
+ * @param setAccountActivatedRedirect - Function to set the state of accountActivatedRedirect
+ * @see {@link Navbar} for component
  */
-const Navbar: React.FC = () => {
+interface NavbarProps {
+    accountActivatedRedirect: boolean,
+    setAccountActivatedRedirect: React.Dispatch<React.SetStateAction<boolean>>
+}
+
+/**
+ * Component that displays the navbar
+ * @param navbarProps - Navbar component props
+ * @returns Navbar Component
+ * @see {@link NavbarProps} for component props
+ */
+const Navbar: React.FC<NavbarProps> = (navbarProps: NavbarProps) => {
 
     ReactModal.setAppElement('#root');
+
+    const { accountActivatedRedirect, setAccountActivatedRedirect } = navbarProps;
 
     // States
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const { width } = useWindowDimensions();
     const [menuOpen, setMenuOpen] = useState<boolean>(false);
-
 
     /**
      * Function to open the modal
@@ -29,6 +43,16 @@ const Navbar: React.FC = () => {
     const openModal = () => {
         setModalOpen(true);
     };
+
+    useEffect(() => {
+        // Check if the user has been redirected from the account activation page.
+        // If so, open the login modal.
+        if (accountActivatedRedirect) {
+            setAccountActivatedRedirect(false);
+            setModalOpen(true);
+        }
+    }, [accountActivatedRedirect, setAccountActivatedRedirect]);
+
 
     /**
      * Function to close the modal

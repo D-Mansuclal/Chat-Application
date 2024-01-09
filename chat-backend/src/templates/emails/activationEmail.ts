@@ -9,7 +9,7 @@ import logger from "../../configs/logger.config";
  */
 export function sendActivationEmail(username: string, email: string, activationToken: string) {
     const MODULE_NAME = "Send Activation Email"
-    const link = `${process.env.CLIENT_URL}/auth/activate-account?token=${activationToken}`;
+    const link = `${process.env.CLIENT_URL}/auth/activate-account?token=${activationToken}&username=${username}`;
     const mailOptions = {
         from: process.env.EMAIL_ADDRESS,
         to: process.env.NODE_ENV === "production" ? email : process.env.EMAIL_ADDRESS,

@@ -13,7 +13,17 @@
     "concurrently": "^8.2.2"
   },
   "scripts": {
-    "start": "concurrently \"npm run dev --prefix chat-backend\" \"npm run start --prefix chat-frontend\"",
-    "test-backend": "npm run test --prefix chat-backend"
+    "start": "concurrently \"npm run start --prefix chat-frontend\" \"npm run start --prefix chat-backend\"",
+    "start:backend": "npm run start --prefix chat-backend",
+    "start:frontend": "npm run start --prefix chat-frontend",
+    
+    "build": "concurrently \"npm run build --prefix chat-backend\" \"npm run build --prefix chat-frontend\"",
+    "build:backend": "npm run build --prefix chat-backend",
+    "build:frontend": "npm run build --prefix chat-frontend",
+    
+    "dev": "concurrently \"npm run dev --prefix chat-backend\" \"npm run start --prefix chat-frontend\"",
+    "dev:backend": "npm run dev --prefix chat-backend",
+    
+    "test:backend": "npm run test --prefix chat-backend"
   }
 }

@@ -90,7 +90,22 @@ export const authService= {
                     token: token,
                     username: username
                 }
-            })
+            });
+        }
+        catch (err: any) {
+            return Promise.reject(err);
+        }
+    },
+
+    forgotPassword: async (email: string) => {
+        try {
+            return axios({
+                method: "post",
+                url: "/api/auth/forgot-password",
+                data: {
+                    email: email
+                }
+            });
         }
         catch (err: any) {
             return Promise.reject(err);

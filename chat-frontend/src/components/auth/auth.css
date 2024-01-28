@@ -67,8 +67,19 @@
     color: var(--primary-variant);
 }
 
+.auth__form-input-wrapper {
+    width: 100%;
+}
+
 .auth__form input:active, .auth__form input:focus {
     border: 3px solid var(--btn) !important;
+}
+
+.auth__success {
+    color: var(--success);
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 .auth__error {

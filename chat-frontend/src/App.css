@@ -8,6 +8,7 @@
         --primary-variant: #cfcfcf;
         --secondary: #6E6E6E;
         --btn: #d0bcff;
+        --success: #56ba7e;
         --error: #CF6679; 
         --font: 'Roboto', sans-serif;
     }
@@ -24,6 +25,7 @@
         --secondary: #6E6E6E;
         --btn: #6750a5;
         --border: #ababab;
+        --success: green;
         --error: red;
         --font: 'Roboto', sans-serif;
     }

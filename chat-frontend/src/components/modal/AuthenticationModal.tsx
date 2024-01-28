@@ -5,6 +5,7 @@ import Register from "../auth/Register"
 import Login from "../auth/Login"
 import IconBtn from "../icon/IconBtn"
 import ActivateAccount from "../auth/ActivateAccount"
+import ForgotPassword from "../auth/ForgotPassword"
 import './Modal.css'
 
 /**
@@ -82,6 +83,10 @@ const AuthenticationModal: React.FC<AuthenticationModalProps> = (authenticationM
 
                     {modalContents === AuthenticationModalTypes.ACTIVATE && email &&(
                         <ActivateAccount switchModalContents={switchModalContents} email={email}/>
+                    )}
+
+                    {modalContents === AuthenticationModalTypes.FORGOTPASSWORD && (
+                        <ForgotPassword switchModalContents={switchModalContents} />
                     )}
                 </>
             </ReactModal>

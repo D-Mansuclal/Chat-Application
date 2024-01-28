@@ -21,7 +21,7 @@ interface LoginProps {
  * Login component contains form that allows user to login to the application.
  * @param loginProps - Login component props
  * @returns Login component as a React Component.
- * @see {@link Login} for component
+ * @see {@link LoginProps} for props
  */
 const Login: React.FC<LoginProps> = (loginProps: LoginProps) => {
 
@@ -85,10 +85,9 @@ const Login: React.FC<LoginProps> = (loginProps: LoginProps) => {
                     <Button type='submit'>Login</Button>
                 }
 
-                {/* TODO: Forgot password */}
                 <button className='auth__switch-form'
                     type="button"
-                    onClick={() => console.log("Switching")}
+                    onClick={() => switchModalContents(AuthenticationModalTypes.FORGOTPASSWORD)}
                 >
                     Forgot your password?
                 </button>
